@@ -47,6 +47,7 @@ export function realizedEquity(
     return { raw, realized: raw, factor: 1 };
   }
 
+
   let collected = 0;
 
   for (let i = 0; i < samples; i++) {
@@ -65,6 +66,17 @@ export function realizedEquity(
 
     while (board.length < 5) {
       const street = streetOf(board.length);
+
+      // No preflop betting round inside the simulation. The hero is already
+      // being priced on the preflop bet they actually face in the real hand;
+      // opening a second one here made them fold out of nearly every sample and
+      // produced realization factors around 20% for perfectly playable hands.
+      // Realization measures how much preflop equity survives *postflop* play.
+      if (board.length < 3) {
+        board = [...board, deck[drawn++], deck[drawn++], deck[drawn++]];
+        continue;
+      }
+
       const equity = equityVsRange(input.hole, board, { combos: [villain] }, rng, 120).equity;
 
       const villainAction = botAct(

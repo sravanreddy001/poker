@@ -1,6 +1,7 @@
 import { botAct, DEFAULT_BOT } from './bot';
+import { equityVsRange } from './equity';
 import { realizedEquity, RealizationInput } from './realization';
-import { removeDead } from './ranges';
+import { Combo, removeDead } from './ranges';
 import type { Rng } from './rng';
 import { streetOf } from './types';
 
@@ -40,9 +41,18 @@ export function evaluateSizes(
   input: RealizationInput & { toCall: number },
   rng: Rng,
 ): EvOption[] {
-  const { realized } = realizedEquity(input, rng, 150);
+  const { raw, realized } = realizedEquity(input, rng, 150);
   const live = removeDead(input.villainRange, [...input.hole, ...input.board]);
   const street = streetOf(input.board.length);
+
+  // How much showdown equity survives postflop play. Applied on top of the
+  // narrowed equities below so the sweep still speaks in realized terms.
+  const realizationFactor = raw > 0 ? realized / raw : 1;
+
+  // A bet must be at least one big blind; a raise must at least double the
+  // amount owed. Without this floor, small pots produce "raises" equal to the
+  // current bet, which are not raises at all.
+  const minTarget = input.toCall > 0 ? input.toCall * 2 : input.bigBlind;
 
   const options: EvOption[] = SIZES.map((size) => {
     const amount =
@@ -50,15 +60,24 @@ export function evaluateSizes(
         ? 0
         : size.fraction === Infinity
           ? input.stack
-          : Math.min(input.stack, Math.round(input.pot * size.fraction));
+          : Math.min(input.stack, Math.max(minTarget, Math.round(input.pot * size.fraction)));
 
     if (amount === 0) {
-      // Checking keeps our share of the current pot; folding to a live bet forfeits it.
-      return { label: size.label, amount: 0, ev: input.toCall > 0 ? 0 : realized * input.pot };
+      // Checking keeps our share of the current pot; folding to a live bet
+      // forfeits it. Facing a bet there is no check to offer, so name it a fold.
+      return input.toCall > 0
+        ? { label: 'fold', amount: 0, ev: 0 }
+        : { label: size.label, amount: 0, ev: realized * input.pot };
     }
 
-    let ev = 0;
-    const n = live.combos.length || 1;
+    // Partition the range by how it answers this size. Equity against the hands
+    // that continue is not equity against the whole range — the bigger the bet,
+    // the stronger the hands that call it. Pricing a bet against the unnarrowed
+    // range is what makes a 99bb shove into a 4bb pot look profitable.
+    let folds = 0;
+    const callers: Combo[] = [];
+    const raisers: Combo[] = [];
+    let raiseTotal = 0;
 
     for (const villain of live.combos) {
       const response = botAct(
@@ -78,14 +97,32 @@ export function evaluateSizes(
       );
 
       if (response.type === 'fold') {
-        ev += input.pot;
+        folds++;
       } else if (response.type === 'raise') {
-        // Cap the tree at one re-raise: treat our continuation as a call.
-        const raiseTo = Math.min(response.amount, input.stack);
-        ev += realized * (input.pot + 2 * raiseTo) - raiseTo;
+        raisers.push(villain);
+        raiseTotal += Math.min(response.amount, input.stack);
       } else {
-        ev += realized * (input.pot + 2 * amount) - amount;
+        callers.push(villain);
       }
+    }
+
+    const n = live.combos.length || 1;
+    const equityAgainst = (combos: Combo[]) =>
+      Math.min(1, equityVsRange(input.hole, input.board, { combos }, rng, 400).equity * realizationFactor);
+
+    // Fold equity: we take the pot as it stands, risking nothing.
+    let ev = folds * input.pot;
+
+    if (callers.length > 0) {
+      const eq = equityAgainst(callers);
+      ev += callers.length * (eq * (input.pot + 2 * amount) - amount);
+    }
+
+    if (raisers.length > 0) {
+      // Cap the tree at one re-raise: treat our continuation as a call.
+      const eq = equityAgainst(raisers);
+      const raiseTo = raiseTotal / raisers.length;
+      ev += raisers.length * (eq * (input.pot + 2 * raiseTo) - raiseTo);
     }
 
     return { label: size.label, amount, ev: ev / n };

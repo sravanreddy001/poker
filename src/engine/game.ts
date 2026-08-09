@@ -40,6 +40,8 @@ export interface HandState {
   log: LogEntry[];
   complete: boolean;
   winners: number[];
+  /** Size of the pot at the moment it was awarded. `pot` itself drops to 0. */
+  awardedPot: number;
 }
 
 const NEXT_STREET: Record<Street, Street | null> = {
@@ -97,6 +99,7 @@ export function startHand(
     log: [],
     complete: false,
     winners: [],
+    awardedPot: 0,
   };
 }
 
@@ -132,7 +135,7 @@ function streetComplete(s: HandState): boolean {
 
 function showdown(s: HandState): HandState {
   const live = livePlayers(s);
-  if (live.length === 0) return { ...s, complete: true, winners: [] };
+  if (live.length === 0) return { ...s, complete: true, winners: [], awardedPot: s.pot };
 
   const scores = live.map((p) => ({
     id: p.id,
@@ -146,6 +149,7 @@ function showdown(s: HandState): HandState {
     ...s,
     players: s.players.map((p) => (winners.includes(p.id) ? { ...p, stack: p.stack + share } : p)),
     pot: 0,
+    awardedPot: s.pot,
     complete: true,
     winners,
   };
@@ -183,6 +187,7 @@ function awardUncontested(s: HandState): HandState {
     ...s,
     players: s.players.map((p) => (p.id === winner.id ? { ...p, stack: p.stack + s.pot } : p)),
     pot: 0,
+    awardedPot: s.pot,
     complete: true,
     winners: [winner.id],
   };
