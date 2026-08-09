@@ -14,6 +14,20 @@ outcome.
 The central teaching claim: **a good decision can lose and a bad decision can
 win.** Every part of the design exists to make that visible.
 
+## Decision criterion
+
+This project optimizes for **learning and practice**, not for realism,
+completeness, or entertainment. Where a choice is contested, the option that
+produces more skill per hand played wins. Concretely:
+
+- Prefer active recall over passive display. A number the user predicted
+  teaches more than the same number shown to them.
+- Prefer volume and fast iteration over ceremony. More hands played means more
+  reps and faster convergence of variance.
+- Prefer mechanics that generalize to real games over mechanics that only
+  exist here.
+- Cut anything that is bookkeeping rather than reasoning.
+
 ## Scope
 
 ### In scope (v1)
@@ -24,6 +38,9 @@ win.** Every part of the design exists to make that visible.
 - Live equity display against the bots' derived ranges.
 - Bet-sizing advisor: expected value of each candidate size, ranked.
 - Post-hand review grading every decision the human made.
+- Equity self-estimate prompt: the app asks the user to predict their equity
+  before revealing it, and scores the error.
+- What-if replay: re-run a completed hand under a different action.
 - Session history with actual-vs-expected winnings chart, persisted locally.
 
 ### Out of scope (v1)
@@ -120,6 +137,31 @@ The hand outcome is then classified:
 - **Won despite** — the decision was −EV and won regardless. Called out
   explicitly, because unexamined this is what quietly teaches bad habits.
 
+## Equity self-estimate
+
+Before the equity figure is revealed on a given street, the app may ask the
+user to predict it on a slider. It then shows the true value, the error, and a
+running calibration score across the session — mean absolute error, trending
+over hands played.
+
+Frequency is user-controlled: every decision, once per hand, or off. Default is
+once per hand, on a street chosen at random, so the prompt stays cheap enough
+that it never slows down play.
+
+This is the highest-value feature in the app under the decision criterion above.
+At the table there is no equity readout; the only transferable skill is
+estimating it yourself. Everything else the app does supports this.
+
+## What-if replay
+
+From the review screen, any decision point can be replayed with a different
+action. The app re-runs the hand from that point and reports the EV of the
+alternative line alongside the distribution of outcomes across all remaining
+runouts — not a single re-deal, which would only substitute one anecdote for
+another.
+
+This multiplies the lessons available per hand played, which is the point.
+
 ### Session view
 
 A line chart of actual stack against EV-expected stack across all hands
@@ -142,6 +184,9 @@ meaningless if hand comparison is wrong.
   termination, all-in resolution, showdown ordering.
 - Review classification: constructed hands that must yield each of the three
   outcome labels.
+- What-if replay: alternative-line EV must match the advisor's EV for that same
+  action at that same decision point. The two paths compute the same quantity
+  and must agree.
 
 ## Risks
 
