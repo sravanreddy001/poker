@@ -68,7 +68,13 @@ export function equityVsRange(
   const toCome = 5 - board.length;
   const deckSize = 52 - 2 - board.length - 2;
   const work = live.combos.length * countRunouts(toCome, deckSize);
-  const exact = toCome <= 2 && work <= 4_000_000;
+
+  // Enumerate only when doing so costs no more than the sampling budget the
+  // caller asked for. `maxSamples` is a work budget, not a hint: against a
+  // 268-combo range a flop enumeration is 265,000 hands, so an 800-sample
+  // request silently became 330x the work. Nested inside the realization loop
+  // that turned a one-second advisor into a multi-minute one.
+  const exact = toCome <= 2 && work <= Math.min(4_000_000, maxSamples);
 
   let wins = 0;
   let ties = 0;

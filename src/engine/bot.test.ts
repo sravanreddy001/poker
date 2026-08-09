@@ -94,6 +94,27 @@ describe('bot policy', () => {
     }
   });
 
+  /**
+   * Regression: on raw pot odds a marginal hand called a 10x-pot overbet,
+   * because 100 to win 210 only needs 48% equity. A hand that calls a half-pot
+   * bet must not automatically call a shove for the same pot.
+   */
+  it('demands more equity as the bet grows relative to the pot', () => {
+    // Second pair on a K-high turn: 53% against a top-30% range, so it beats
+    // the price of a half-pot bet but not the premium a shove carries.
+    const spot = {
+      hole: hole('Ts 9s'),
+      board: parseCards('Kh 7s 2c 9d'),
+      street: 'turn' as const,
+      stack: 100,
+      inPosition: false,
+    };
+    const small = botAct(base({ ...spot, pot: 15, toCall: 5 }), DEFAULT_BOT, makeRng(21));
+    const shove = botAct(base({ ...spot, pot: 110, toCall: 100 }), DEFAULT_BOT, makeRng(21));
+    expect(small.type).not.toBe('fold');
+    expect(shove.type).toBe('fold');
+  });
+
   it('never bets more than its stack', () => {
     const ctx = base({
       hole: hole('As Ah'),

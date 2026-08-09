@@ -1,7 +1,7 @@
 import { botAct, DEFAULT_BOT } from './bot';
 import { equityVsRange } from './equity';
-import { realizedEquity, RealizationInput } from './realization';
-import { Combo, removeDead } from './ranges';
+import { realizedEquity, RealizationInput, PERCEIVED_HERO_RANGE_PCT } from './realization';
+import { Combo, rangeTopPercent, removeDead } from './ranges';
 import type { Rng } from './rng';
 import { streetOf } from './types';
 
@@ -20,6 +20,14 @@ export const SIZES: SizeOption[] = [
   { label: '2x pot', fraction: 2 },
   { label: 'all-in', fraction: Infinity },
 ];
+
+/**
+ * Equity budget for each simulated opponent decision. The sweep asks the bot
+ * how it answers every size with every combo in its range — seven sizes times
+ * a few hundred combos — so the live-play budget of 800 would cost over a
+ * million hand evaluations per recommendation.
+ */
+const BOT_SAMPLES = 150;
 
 export interface EvOption {
   label: string;
@@ -48,6 +56,14 @@ export function evaluateSizes(
   // How much showdown equity survives postflop play. Applied on top of the
   // narrowed equities below so the sweep still speaks in realized terms.
   const realizationFactor = raw > 0 ? realized / raw : 1;
+
+  // What the opponent can see: a range, not our two cards. Handing the bot our
+  // exact hand made it fold everything that loses to us, so value betting looked
+  // worthless and checking down a monster looked correct.
+  const perceived = removeDead(rangeTopPercent(PERCEIVED_HERO_RANGE_PCT), [
+    ...input.hole,
+    ...input.board,
+  ]);
 
   // A bet must be at least one big blind; a raise must at least double the
   // amount owed. Without this floor, small pots produce "raises" equal to the
@@ -90,10 +106,11 @@ export function evaluateSizes(
           bigBlind: input.bigBlind,
           street,
           inPosition: !input.inPosition,
-          villainRange: { combos: [input.hole] },
+          villainRange: perceived,
         },
         DEFAULT_BOT,
         rng,
+        BOT_SAMPLES,
       );
 
       if (response.type === 'fold') {

@@ -404,6 +404,11 @@ export default function App() {
                     ? 'Bots are mechanical. Their bluff frequency is published, so calling is arithmetic, not mind-reading.'
                     : 'Bots do not bluff preflop — any aggression here is a real hand from the top of that range.'}
                 </p>
+                <p className="note">
+                  They call on pot odds plus a premium that grows with your bet: 10 points of
+                  equity per pot-sized bet, capped at 25. Big bets fold out more hands, but the
+                  ones that call are stronger.
+                </p>
               </div>
 
               <div className="panel advisor">

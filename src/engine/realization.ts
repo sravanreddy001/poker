@@ -2,7 +2,7 @@ import { Card, fullDeck } from './cards';
 import { evaluate } from './evaluator';
 import { equityVsRange } from './equity';
 import { botAct, DEFAULT_BOT } from './bot';
-import { Combo, Range, removeDead } from './ranges';
+import { Combo, Range, rangeTopPercent, removeDead } from './ranges';
 import { Rng, shuffled } from './rng';
 import { streetOf } from './types';
 
@@ -26,6 +26,14 @@ export interface RealizationResult {
 }
 
 /**
+ * The range a simulated opponent puts the hero on. It has to be a range: give
+ * the bot the hero's exact two cards and it folds every hand that loses to
+ * them, which makes value betting look worthless. Matches the band the real
+ * bots use in `game.ts`.
+ */
+export const PERCEIVED_HERO_RANGE_PCT = 0.3;
+
+/**
  * Fixed default continuation policy for the hero. Deliberately simple and
  * independent of the advisor — the advisor consumes realized equity, so using
  * the advisor here would be circular.
@@ -46,6 +54,11 @@ export function realizedEquity(
   if (live.combos.length === 0 || raw === 0) {
     return { raw, realized: raw, factor: 1 };
   }
+
+  const perceived = removeDead(rangeTopPercent(PERCEIVED_HERO_RANGE_PCT), [
+    ...input.hole,
+    ...input.board,
+  ]);
 
 
   let collected = 0;
@@ -89,10 +102,11 @@ export function realizedEquity(
           bigBlind: input.bigBlind,
           street,
           inPosition: !input.inPosition,
-          villainRange: { combos: [input.hole] },
+          villainRange: perceived,
         },
         DEFAULT_BOT,
         rng,
+        120,
       );
 
       if (villainAction.type === 'bet') {
