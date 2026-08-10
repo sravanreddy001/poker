@@ -45,6 +45,8 @@ export const DEFINITIONS = {
     'Stack-to-Pot Ratio (SPR): Your remaining chip stack divided by the current pot size. High SPR means deep stacks (careful play); low SPR means committed stacks.',
   villainRange:
     'Opponent Opening Range: The full 13×13 grid of starting hand combinations your opponent is estimated to play based on their position.',
+  communityCards:
+    'Community Cards (The Board): The 5 shared cards dealt face-up in the center of the table across 3 rounds — Flop (3 cards), Turn (1 card), and River (1 card). All players combine these with their 2 private hole cards to make their best 5-card poker hand.',
 };
 
 /** Suit indices are c,d,h,s — diamonds and hearts render red. */
