@@ -40,15 +40,22 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
   }
 
   let leakTag = '';
+  let leakExplanation = '';
   if (!isDecisionGood) {
     const worstDecision = [...decisions].sort((a, b) => b.evLost - a.evLost)[0];
     if (worstDecision) {
       if (worstDecision.chosen === 'call') {
-        leakTag = 'Overcalled draw out of position (Surrendered Realized Equity)';
+        leakTag = 'Unprofitable Call with Draw Out of Position';
+        leakExplanation =
+          'You paid to call a bet with an incomplete drawing hand while acting first (out of position). Future opponent bets will force you to fold before seeing the river, making this call a long-term loss.';
       } else if (worstDecision.chosen === 'fold') {
-        leakTag = 'Overfolded to aggression (Folded +EV hand)';
+        leakTag = 'Folded a Profitable Hand to Opponent Bet';
+        leakExplanation =
+          'Your hand had sufficient win odds and pot odds to make calling or betting profitable, but you folded.';
       } else {
-        leakTag = 'Suboptimal bet sizing (Missed Max Expected Value)';
+        leakTag = 'Sub-optimal Bet Size Selected';
+        leakExplanation =
+          'Your bet size was too small or too large compared to the optimal size, surrendering dollar profit ($ EV).';
       }
     }
   }
@@ -68,7 +75,7 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
             </span>
             <span className="outcome-subtitle">
               {outcomeType === 'VARIANCE' && 'Your play was mathematically optimal (+EV); short-term runout variance caused the loss.'}
-              {outcomeType === 'WON_DESPITE' && 'You won the pot, but your action was sub-optimal in long-term Expected Value ($ EV).'}
+              {outcomeType === 'WON_DESPITE' && 'You won the pot, but your action surrendered expected profit ($ EV).'}
               {outcomeType === 'CONSEQUENCE' && `Surrendered ${money(totalEvLost)} in expected value due to sub-optimal decisions.`}
               {outcomeType === 'CLEAN_WIN' && 'Optimal play (+EV) and a winning result!'}
             </span>
@@ -116,10 +123,11 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
           </div>
         )}
 
-        {/* Leak Tag Warning Badge */}
+        {/* Leak Tag Warning Badge with Detailed Explanation */}
         {leakTag && (
           <div className="leak-badge">
-            <span className="leak-text">Leak Identified: <b>{leakTag}</b></span>
+            <div className="leak-title">⚠️ Leak Identified: <b>{leakTag}</b></div>
+            <div className="leak-explanation">{leakExplanation}</div>
           </div>
         )}
 
