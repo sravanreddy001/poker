@@ -42,6 +42,10 @@ export const TerminologyModal: React.FC<TerminologyModalProps> = ({ isOpen, onCl
       desc: 'Expected Value ($ EV) follows a curve: EV = [Call Amount × Calling Frequency].\n• Why NOT Lower (1x Pot)? Betting smaller leaves dollar profit on the table. Opponent would still call 2x pot with their strong catchers.\n• Why NOT Higher (4x Pot)? Betting 4x pot exceeds opponent\'s elastic calling threshold, forcing them to fold everything except hands that beat you (making you get called only when losing).\n• The 2x Sweet Spot: Maximizes total dollar extraction (+ $4.14 EV) while keeping opponent\'s catchers in the pot!',
     },
     {
+      title: 'How to Calculate Playable Odds & Pot Odds Yourself (5 Steps)',
+      desc: '1. Count Outs: Flush draw = 9 outs, Open-Ended Straight = 8 outs, Gutshot = 4 outs.\n2. Rule of 4/2 (Raw Equity): Multiply outs by 4 on Flop or by 2 on Turn. (e.g. 9 outs × 4 = 36% Raw Equity).\n3. Position Realization (Playable Equity): Multiply by 1.0 if In Position (36%) or by 0.8 if Out of Position (29%).\n4. Required Pot Odds %: Call ÷ (Pot + Call). (e.g. $10 call into $30 pot = $10/$40 = 25%).\n5. Decision Verdict: If Playable Equity (29%) > Pot Odds (25%), CALL IS PROFITABLE (+EV)!',
+    },
+    {
       title: 'Position Retention (Realization Factor)',
       desc: 'Calculated as Realized Equity ÷ Raw Equity. Measures what percentage of your raw card strength you actually get to claim based on table position and opponent betting.',
     },
