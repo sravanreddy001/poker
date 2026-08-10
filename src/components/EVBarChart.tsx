@@ -1,6 +1,6 @@
 import React from 'react';
 import { EvOption } from '../engine/ev';
-import { money, DEFINITIONS } from '../analysis';
+import { money, DEFINITIONS, getSizingRationale } from '../analysis';
 
 export interface EVBarChartProps {
   advice: EvOption[];
@@ -9,6 +9,8 @@ export interface EVBarChartProps {
   chosenLabel?: string;
   revealed: boolean;
   onReveal: () => void;
+  pot?: number;
+  realizedEquity?: number;
 }
 
 export const EVBarChart: React.FC<EVBarChartProps> = ({
@@ -18,8 +20,10 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
   chosenLabel,
   revealed,
   onReveal,
+  pot = 10,
+  realizedEquity = 0.5,
 }) => {
-  const candidates: { label: string; ev: number }[] = [];
+  const candidates: { label: string; ev: number; amount?: number }[] = [];
 
   candidates.push({ label: 'fold', ev: 0 });
 
@@ -29,7 +33,7 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
 
   advice.forEach((item) => {
     if (!candidates.some((c) => c.label === item.label)) {
-      candidates.push({ label: item.label, ev: item.ev });
+      candidates.push({ label: item.label, ev: item.ev, amount: item.amount });
     }
   });
 
@@ -37,6 +41,9 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
 
   const maxEv = Math.max(...candidates.map((c) => Math.abs(c.ev)), 1);
   const bestOption = candidates[0];
+
+  const bestAmount = bestOption.amount ?? 0;
+  const sizingNote = bestAmount > 0 ? getSizingRationale(bestAmount, pot, realizedEquity) : '';
 
   return (
     <div className="ev-barchart-card">
@@ -91,11 +98,16 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
       {/* Educational Definition Card */}
       <div className="learning-card">
         <div className="learning-card-header">
-          <span>🎯 Definition: Expected Value ($ EV) & Pot Odds</span>
+          <span>🎯 Why {bestOption.label}?</span>
         </div>
         <div className="learning-card-body">
-          <b>Expected Value ($ EV)</b> is the average long-term dollar outcome of each action.<br />
-          <b>Best Action</b>: <b>{bestOption.label}</b> yields the highest expected profit ({money(bestOption.ev, { sign: true })}).
+          <b>Optimal Action</b>: <b>{bestOption.label}</b> yields the highest expected profit ({money(bestOption.ev, { sign: true })}).
+          {sizingNote && (
+            <>
+              <br />
+              <b>Sizing Logic</b>: {sizingNote}
+            </>
+          )}
         </div>
       </div>
     </div>

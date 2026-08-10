@@ -306,6 +306,8 @@ export default function App() {
                   chosenLabel={lastFeedback?.chosen}
                   revealed={revealed}
                   onReveal={handleReveal}
+                  pot={state.pot}
+                  realizedEquity={analysis.realizedEquity}
                 />
               )}
 

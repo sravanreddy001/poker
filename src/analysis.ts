@@ -84,16 +84,40 @@ export function getOptimalActionRationale(opts: {
   }
 
   if (labelLower.includes('bet') || labelLower.includes('raise')) {
-    if (relPct >= 60) {
-      return `Value Bet & Charge Draws: Sizing extracts value from worse pairs while denying free cards to opponent drawing hands.`;
+    const amountMatch = opts.actionLabel.match(/\d+(\.\d+)?/);
+    const amount = amountMatch ? parseFloat(amountMatch[0]) : 0;
+    const pot = opts.toCall > 0 ? opts.toCall * 2 : 10;
+    const pctOfPot = pot > 0 ? Math.round((amount / pot) * 100) : 50;
+
+    if (relPct >= 70 || pctOfPot >= 80) {
+      return `Large Value Sizing (${pctOfPot > 0 ? `${pctOfPot}% Pot` : 'Heavy'}): Chosen with monster equity (${relPct}%) to build a large pot and charge draws maximum price to see future cards.`;
+    } else if (pctOfPot <= 35) {
+      return `Small Sizing (${pctOfPot}% Pot): High-frequency probe bet. Risks minimal chips while forcing opponent to fold low-equity high-card hands.`;
     } else if ((opts.outsCount ?? 0) >= 8) {
-      return `Semi-Bluff Aggression: Bet puts pressure on opponent while retaining ${opts.outsCount} outs to complete a winning hand on future streets.`;
+      return `Semi-Bluff Aggression (${pctOfPot}% Pot): Bet puts pressure on opponent while retaining ${opts.outsCount} outs to hit a winning hand on future streets.`;
     } else {
-      return `Protection & Value: Sizing balances pot building against worse hands while denying free cards.`;
+      return `Medium Value Sizing (${pctOfPot}% Pot): Standard value bet. Balances pot building against worse hands while keeping opponent's calling range wide.`;
     }
   }
 
   return `Highest Expected Profit (${money(opts.evVal, { sign: true })}): Maximizes long-term profit against opponent's action frequencies.`;
+}
+
+export function getSizingRationale(amount: number, pot: number, realizedEquity: number): string {
+  if (amount <= 0 || pot <= 0) return '';
+  const pctOfPot = Math.round((amount / pot) * 100);
+  const relPct = Math.round(realizedEquity * 100);
+
+  if (pctOfPot >= 90) {
+    return `Large / All-In (${pctOfPot}% Pot): Best for monster hands (${relPct}% equity) to extract maximum dollar value or polarize your bluffing range against catchers.`;
+  }
+  if (pctOfPot >= 65) {
+    return `Large Sizing (${pctOfPot}% Pot): Best on wet/draw-heavy textures to charge draws a high price to see future cards.`;
+  }
+  if (pctOfPot >= 40) {
+    return `Medium Sizing (${pctOfPot}% Pot): Standard value bet. Balances extracting value from second-best pairs while keeping opponent's calling range wide.`;
+  }
+  return `Small Sizing (${pctOfPot}% Pot): High-frequency probe bet. Risks minimal chips while forcing opponent to fold low-equity high-card hands.`;
 }
 
 const DISPLAY_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];

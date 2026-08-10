@@ -34,6 +34,10 @@ export const TerminologyModal: React.FC<TerminologyModalProps> = ({ isOpen, onCl
       desc: 'Your realistic chance of winning the pot when factoring in future betting rounds. Benchmark Tiers:\n• 🔴 Weak Equity (< 35%): Unimproved high cards or weak pairs out of position. Requires cheap pot odds or folding.\n• 🟡 Medium Equity (35% – 55%): Coin-flip hands, middle pair, or strong draws. Calling is +EV when equity exceeds required pot odds.\n• 🟢 Strong Equity (55%+): Dominant top pairs, sets, straights, and flushes. Primary range for value betting and raising.',
     },
     {
+      title: 'Bet Sizing Strategy (Why Choose a Specific Size?)',
+      desc: 'Sizing choices are driven by board texture and hand equity:\n• ⚡ Small Sizing (1/3 Pot / 33%): High-frequency probe bet on dry boards. Risks minimal chips while forcing opponent to fold low-equity hands.\n• 🎯 Medium Sizing (1/2 Pot / 50%): Standard value bet. Extracts value from second-best pairs while keeping opponent\'s calling range wide.\n• 💥 Large Sizing (3/4 Pot / 75%): Used on wet/draw-heavy textures with strong equity to charge draws a high price to see future cards.\n• 👑 Overbet / All-In (100%+ Pot / Shove): Used with monster hands to extract maximum dollar value or polarize your bluffing range.',
+    },
+    {
       title: 'Position Retention (Realization Factor)',
       desc: 'Calculated as Realized Equity ÷ Raw Equity. Measures what percentage of your raw card strength you actually get to claim based on table position and opponent betting.',
     },
