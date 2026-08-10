@@ -23,8 +23,8 @@ export const PeekStrip: React.FC<PeekStripProps> = ({
   const factorPct = Math.round(realizationFactor * 100);
   const bePct = Math.round(breakEvenOdds * 100);
 
-  const tooltipText = `🧮 Playable Odds Math Breakdown (${realizedPct}%):\n• Raw Showdown Equity: ${rawPct}%\n• Position Realization: ${factorPct}%\n• Math: Raw (${rawPct}%) × Realization (${factorPct}%) = ${realizedPct}%\n• Threshold vs Call Odds (${bePct}%): ${
-    realizedPct >= bePct ? `+${realizedPct - bePct}% Profit Margin (+EV)` : `-${bePct - realizedPct}% Deficit (-EV)`
+  const tooltipText = `🧮 Playable Odds Math Breakdown (${realizedPct}%):\n• Raw Showdown Equity (${rawPct}%): Pure win odds if all cards dealt now.\n• Position Retention (${factorPct}%): How much card strength you claim based on position.\n• Formula: ${rawPct}% Raw × ${factorPct}% Position = ${realizedPct}% Playable Odds.\n• Call Odds Threshold (${bePct}%): Minimum win % to call.\n• Verdict: ${
+    realizedPct >= bePct ? `+${realizedPct - bePct}% Profit Margin (+EV Call)` : `-${bePct - realizedPct}% Deficit (-EV Fold)`
   }`;
 
   return (
@@ -38,18 +38,23 @@ export const PeekStrip: React.FC<PeekStripProps> = ({
         <span className="peek-item peek-tooltip-trigger" title={tooltipText}>
           Playable Odds: <b className="peek-highlight">{pct(realizedEquity)}</b>
           <span className="peek-math-hover-card">
-            <span className="math-hover-title">🧮 Playable Odds Math</span>
+            <span className="math-hover-title">🧮 Playable Odds Math Breakdown</span>
             <span className="math-hover-line">
-              <b>Raw Equity</b>: {rawPct}% (Showdown)
+              🔹 <b>Raw Equity ({rawPct}%)</b>: Pure card win odds at showdown if no more bets occurred.
             </span>
             <span className="math-hover-line">
-              <b>Position Retention</b>: {factorPct}%
+              🔹 <b>Position Retention ({factorPct}%)</b>: Claim factor based on seat position (In position = 100%, Out of position = 80%).
             </span>
             <span className="math-hover-line highlight-line">
-              <b>Math</b>: {rawPct}% × {factorPct}% = <b>{realizedPct}%</b>
+              🎯 <b>Playable Odds Formula</b>: {rawPct}% Raw × {factorPct}% Position = <b>{realizedPct}% Realized</b>
             </span>
             <span className="math-hover-line sub-line">
-              <b>Call Threshold</b>: {bePct}% BE ({realizedPct >= bePct ? `+${realizedPct - bePct}% +EV` : `-${bePct - realizedPct}% -EV`})
+              ⚖️ <b>Break-Even Call Odds ({bePct}%)</b>: Minimum win % needed to call (Call ÷ Total Pot).
+            </span>
+            <span className="math-hover-line verdict-line">
+              {realizedPct >= bePct
+                ? `✅ Profit Margin: ${realizedPct}% > ${bePct}% (+${realizedPct - bePct}% +EV Call!)`
+                : `⚠️ Deficit: ${realizedPct}% < ${bePct}% (-${bePct - realizedPct}% -EV Fold!)`}
             </span>
           </span>
         </span>

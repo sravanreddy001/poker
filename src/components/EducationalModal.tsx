@@ -10,6 +10,10 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onCl
 
   const guides = [
     {
+      title: '🧮 Playable Odds Math Terminology Breakdown (Plain English)',
+      desc: '• 1. Raw Showdown Equity (%): Your pure card strength if all board cards were dealt right now with NO future betting.\n• 2. Position Retention Factor (%): In real poker, future bets happen. Acting in position (BTN) lets you claim ~100% of your raw equity. Acting out of position (SB/UTG) forces you to fold early ~15%–20% of the time before seeing the river.\n• 3. Playable Odds Formula: Raw Equity % × Position Retention % = Playable Odds %.\n  (Example: 45% Raw Equity × 85% Retention = 38% Playable Odds).\n• 4. Break-Even Call Odds (Pot Odds %): Call Price ÷ (Total Pot + Call Price). Minimum win rate required to make calling break-even.\n• 5. Profit Margin (+EV): When your Playable Odds (38%) exceed Break-Even Call Odds (15%), calling makes long-term dollar profit (+23% +EV)!',
+    },
+    {
       title: '📍 6-Max Table Positions & Strategy Guide',
       desc: 'Position dictates action order on every street:\n• 🔴 UTG (Under The Gun): First to act preflop. Must play tightest range since 5 players act after you.\n• 🟠 MP (Middle Position / Hijack): Second to act preflop. Slightly wider opening range than UTG.\n• 🟢 CO (Cutoff): Acts right before the Button. Premium position for stealing blinds.\n• 🟡 BTN (Button / Dealer): Best position at the table! Acts last on every postflop street, maximizing control & equity realization.\n• 🔷 SB (Small Blind): Posts $0.50 blind. Worst postflop position (acts first on every street).\n• 🟣 BB (Big Blind): Posts $1.00 blind. Closes preflop action; gets discounted pot odds to defend.',
     },

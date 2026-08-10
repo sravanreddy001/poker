@@ -528,6 +528,15 @@ html, body {
   color: #94a3b8;
 }
 
+.math-hover-line.verdict-line {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-gold);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 3px;
+  margin-top: 2px;
+}
+
 .peek-trigger {
   display: flex;
   align-items: center;
