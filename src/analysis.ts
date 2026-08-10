@@ -55,6 +55,7 @@ export function getOptimalActionRationale(opts: {
   realizedEquity: number;
   rawEquity: number;
   toCall: number;
+  pot?: number;
   potOddsRequired?: number;
   outsCount?: number;
   spr?: number;

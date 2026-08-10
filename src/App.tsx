@@ -13,6 +13,7 @@ import { BottomSheet, SnapPoint } from './components/BottomSheet';
 import { PostRoundReview, ReviewRecord } from './components/PostRoundReview';
 import { TerminologyModal } from './components/TerminologyModal';
 import { HandRankingsModal } from './components/HandRankingsModal';
+import { EducationalModal } from './components/EducationalModal';
 
 const OPTS = { players: 6, stack: 100, bigBlind: 1 };
 const STORAGE_KEY = 'poker-trainer-session';
@@ -25,19 +26,17 @@ interface SessionStats {
   reveals: number;
 }
 
-const EMPTY_STATS: SessionStats = { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0 };
-
 function loadStats(): SessionStats {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY_STATS;
-    return { ...EMPTY_STATS, ...JSON.parse(raw) };
+    if (!raw) return { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0 };
+    return JSON.parse(raw);
   } catch {
-    return EMPTY_STATS;
+    return { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0 };
   }
 }
 
-interface DecisionRecord {
+export interface DecisionRecord {
   street: string;
   rawEquity: number;
   realizedEquity: number;
@@ -62,6 +61,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'equity' | 'lines' | 'villain'>('equity');
 
   // Modal states
+  const [showEducational, setShowEducational] = useState(false);
   const [showTerminology, setShowTerminology] = useState(false);
   const [showHandRankings, setShowHandRankings] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -80,9 +80,7 @@ export default function App() {
 
   const handleSnapChange = useCallback((newSnap: SnapPoint) => {
     setSnap(newSnap);
-    if (newSnap !== 'peek') {
-      setSnapMemory(newSnap);
-    }
+    if (newSnap !== 'peek') setSnapMemory(newSnap);
   }, []);
 
   const handleReveal = useCallback(() => {
@@ -94,50 +92,48 @@ export default function App() {
 
   const allCandidates = useMemo(() => {
     if (!analysis) return [];
-    const checkEv = analysis.advice.find((o) => o.amount === 0)?.ev ?? 0;
-    const items: { label: string; ev: number; actionType: string; amount?: number }[] = [
-      { label: 'fold', ev: 0, actionType: 'fold' },
-      ...(analysis.toCall > 0
-        ? [{ label: 'call', ev: analysis.potOdds.evOfCall, actionType: 'call' }]
-        : [{ label: 'check', ev: checkEv, actionType: 'check' }]),
-      ...analysis.advice.map((a) => ({
-        label: `${analysis.toCall > 0 ? 'Raise' : 'Bet'} ${money(a.amount)}`,
-        ev: a.ev,
-        actionType: analysis.toCall > 0 ? 'raise' : 'bet',
-        amount: a.amount,
-      })),
-    ];
-    items.sort((a, b) => b.ev - a.ev);
-    return items;
+    const list: { label: string; ev: number; amount?: number }[] = [];
+    list.push({ label: 'fold', ev: 0 });
+    if (analysis.toCall > 0) {
+      list.push({ label: 'call', ev: analysis.potOdds.evOfCall });
+    }
+    analysis.advice.forEach((item) => {
+      if (!list.some((c) => c.label === item.label)) {
+        list.push({ label: item.label, ev: item.ev, amount: item.amount });
+      }
+    });
+    list.sort((a, b) => b.ev - a.ev);
+    return list;
   }, [analysis]);
 
-  const bestOption = allCandidates[0];
+  const bestLineLabel = useMemo(() => {
+    return allCandidates[0]?.label ?? 'check';
+  }, [allCandidates]);
+
+  const heroWon = state.complete && state.winners.includes(0);
 
   const act = useCallback(
-    (action: Action, label: string) => {
-      if (!analysis || allCandidates.length === 0) return;
+    (action: Action) => {
+      if (!analysis) return;
+      const label =
+        action.type === 'bet' || action.type === 'raise'
+          ? `${action.type} ${action.amount}`
+          : action.type;
 
-      const checkEv = analysis.advice.find((o) => o.amount === 0)?.ev ?? 0;
-      const chosenEv =
-        label === 'fold'
-          ? 0
-          : label === 'call'
-            ? analysis.potOdds.evOfCall
-            : label === 'check'
-              ? checkEv
-              : (analysis.advice.find((o) => o.amount === (action.type === 'bet' || action.type === 'raise' ? action.amount : 0))?.ev ?? 0);
-
-      const topBest = allCandidates[0];
-      const evLost = Math.max(0, topBest.ev - chosenEv);
+      const userOpt = allCandidates.find((c) => c.label.toLowerCase() === label.toLowerCase());
+      const topBest = allCandidates[0] ?? { label: 'check', ev: 0 };
+      const userEv = userOpt ? userOpt.ev : -10;
+      const rawEvLost = Math.max(0, topBest.ev - userEv);
+      const evLost = rawEvLost < 0.1 ? 0 : rawEvLost;
 
       const rationale = getOptimalActionRationale({
         actionLabel: topBest.label,
-        evVal: topBest.ev,
-        realizedEquity: analysis.realizedEquity,
         rawEquity: analysis.rawEquity,
+        realizedEquity: analysis.realizedEquity,
         toCall: analysis.toCall,
-        potOddsRequired: analysis.toCall > 0 ? analysis.toCall / (state.pot + analysis.toCall) : undefined,
+        pot: state.pot,
         outsCount: analysis.outs.length,
+        evVal: topBest.ev,
         spr: analysis.spr,
       });
 
@@ -163,7 +159,7 @@ export default function App() {
 
       setState((s) => stepBots(applyAction(s, action)));
     },
-    [analysis, allCandidates, snapMemory, state.street],
+    [analysis, allCandidates, snapMemory, state.street, state.pot],
   );
 
   const nextHand = useCallback(() => {
@@ -203,20 +199,13 @@ export default function App() {
 
   const sizeButtons = useMemo(() => {
     if (!analysis) return [];
-    const seen = new Set<number>();
-    return analysis.advice
-      .filter((o) => o.amount > 0 && o.amount > analysis.toCall)
-      .sort((a, b) => a.amount - b.amount)
-      .filter((o) => (seen.has(o.amount) ? false : (seen.add(o.amount), true)));
+    return analysis.advice;
   }, [analysis]);
 
-  const heroWon = state.complete && state.winners.includes(0);
-  const bestLineLabel = bestOption?.label ?? 'Check';
-
   return (
-    <div className="device-container">
-      <div className="app-root">
-        {/* 1. Stat Strip Header */}
+    <div className="app-viewport">
+      <div className="app-device-container">
+        {/* 1. Fixed Header Navigation */}
         <header className="stat-strip">
           <div className="stat-item">
             Hands <b>{stats.hands}</b>
@@ -231,8 +220,17 @@ export default function App() {
             <button
               type="button"
               className="header-icon-btn"
+              onClick={() => setShowEducational(true)}
+              title="Informational & Strategy Guides (ℹ️)"
+              aria-label="Open Informational Strategy Guides"
+            >
+              ℹ️
+            </button>
+            <button
+              type="button"
+              className="header-icon-btn"
               onClick={() => setShowTerminology(true)}
-              title="Terminology Glossary (?)"
+              title="Pure Glossary & Vocabulary (?)"
               aria-label="Open Terminology Glossary"
             >
               ❓
@@ -353,6 +351,12 @@ export default function App() {
             </div>
           )}
         </main>
+
+        {/* Informational & Strategy Guides Modal */}
+        <EducationalModal
+          isOpen={showEducational}
+          onClose={() => setShowEducational(false)}
+        />
 
         {/* Terminology Glossary Modal */}
         <TerminologyModal
