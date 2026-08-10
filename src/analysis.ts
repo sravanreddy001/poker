@@ -76,7 +76,7 @@ export function getOptimalActionRationale(opts: {
   }
 
   if (labelLower.includes('call')) {
-    return `Profitable Call (+EV): Pot odds require ${reqPct}% equity to break even. Your ${relPct}% playable equity beats the threshold by +${Math.max(0, relPct - reqPct)}%.`;
+    return `Profitable Call (+EV): Pot odds require ${reqPct}% equity to break even. Your ${relPct}% playable equity beats the threshold by +${Math.max(0, relPct - reqPct)}%. Calling is superior to raising here because calling realizes your equity cheaply, whereas raising over-bloats the pot with a speculative hand.`;
   }
 
   if (labelLower.includes('check')) {
