@@ -10,7 +10,6 @@ export interface SeatProps {
   isCurrentToAct: boolean;
   isComplete: boolean;
   isWinner: boolean;
-  revealAllHands?: boolean;
 }
 
 export const Seat: React.FC<SeatProps> = ({
@@ -19,7 +18,6 @@ export const Seat: React.FC<SeatProps> = ({
   isCurrentToAct,
   isComplete,
   isWinner,
-  revealAllHands = false,
 }) => {
   const slotIndex = getSeatSlot(player.id, totalPlayers);
   const coord = SLOT_COORDS[slotIndex];
@@ -52,8 +50,8 @@ export const Seat: React.FC<SeatProps> = ({
           {player.id === 1 && <span className="seat-bluff-tag">Bluff 30%</span>}
         </div>
         <div className="seat-cards">
-          <CardView card={player.hole?.[0]} hidden={!isHero && !revealAllHands && (!isComplete || player.folded)} />
-          <CardView card={player.hole?.[1]} hidden={!isHero && !revealAllHands && (!isComplete || player.folded)} />
+          <CardView card={player.hole?.[0]} hidden={!isHero && !isComplete} />
+          <CardView card={player.hole?.[1]} hidden={!isHero && !isComplete} />
         </div>
         <div className="seat-stack">{money(player.stack)}</div>
         {player.committed > 0 && !isComplete && (
