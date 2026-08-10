@@ -1187,6 +1187,31 @@ html, body {
   color: #cbd5e1;
 }
 
+.timeline-rationale-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px dashed rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+
+.rationale-icon {
+  font-size: 13px;
+}
+
+.rationale-text {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
+.rationale-text b {
+  color: var(--sky);
+}
+
 .leak-badge {
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid var(--coral);

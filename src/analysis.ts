@@ -49,6 +49,53 @@ export const DEFINITIONS = {
     'Community Cards (The Board): The 5 shared cards dealt face-up in the center of the table across 3 rounds — Flop (3 cards), Turn (1 card), and River (1 card). All players combine these with their 2 private hole cards to make their best 5-card poker hand.',
 };
 
+export function getOptimalActionRationale(opts: {
+  actionLabel: string;
+  evVal: number;
+  realizedEquity: number;
+  rawEquity: number;
+  toCall: number;
+  potOddsRequired?: number;
+  outsCount?: number;
+  spr?: number;
+}): string {
+  const labelLower = opts.actionLabel.toLowerCase();
+  const relPct = Math.round(opts.realizedEquity * 100);
+  const reqPct = opts.potOddsRequired ? Math.round(opts.potOddsRequired * 100) : 0;
+
+  if (labelLower.includes('all-in') || labelLower.includes('all in') || (opts.spr !== undefined && opts.spr < 1.5)) {
+    if (relPct >= 70) {
+      return `Monster Hand Strength (${relPct}% equity): Shoving All-In extracts maximum dollar value from second-best made hands and sets before future board cards.`;
+    } else if (reqPct > 0 && relPct >= reqPct) {
+      return `Pot-Committed Shove: Pot odds require ${reqPct}% equity. Your ${relPct}% equity makes Calling/Shoving All-In strongly +EV (${money(opts.evVal, { sign: true })}).`;
+    }
+  }
+
+  if (labelLower.includes('fold')) {
+    return `Weak Playable Equity (${relPct}%): Facing this bet, your win odds do not clear the required pot odds threshold. Calling surrenders dollar EV.`;
+  }
+
+  if (labelLower.includes('call')) {
+    return `Profitable Call (+EV): Pot odds require ${reqPct}% equity to break even. Your ${relPct}% playable equity beats the threshold by +${Math.max(0, relPct - reqPct)}%.`;
+  }
+
+  if (labelLower.includes('check')) {
+    return `Pot Control / Trap: Checking controls pot size out of position and keeps opponent's bluffing range active.`;
+  }
+
+  if (labelLower.includes('bet') || labelLower.includes('raise')) {
+    if (relPct >= 60) {
+      return `Value Bet & Charge Draws: Sizing extracts value from worse pairs while denying free cards to opponent drawing hands.`;
+    } else if ((opts.outsCount ?? 0) >= 8) {
+      return `Semi-Bluff Aggression: Bet puts pressure on opponent while retaining ${opts.outsCount} outs to complete a winning hand on future streets.`;
+    } else {
+      return `Protection & Value: Sizing balances pot building against worse hands while denying free cards.`;
+    }
+  }
+
+  return `Highest Expected Profit (${money(opts.evVal, { sign: true })}): Maximizes long-term profit against opponent's action frequencies.`;
+}
+
 const DISPLAY_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
 /** Suit indices are c,d,h,s — diamonds and hearts render red. */

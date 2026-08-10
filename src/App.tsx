@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { startHand, applyAction, stepBots, HandState } from './engine/game';
 import type { Action } from './engine/types';
-import { analyseSpot, money, HeroAnalysis, VILLAIN_RANGE_PCT } from './analysis';
+import { analyseSpot, money, HeroAnalysis, VILLAIN_RANGE_PCT, getOptimalActionRationale } from './analysis';
 import { PokerTable } from './components/PokerTable';
 import { ActionBar } from './components/ActionBar';
 import { PeekStrip } from './components/PeekStrip';
@@ -44,6 +44,7 @@ interface DecisionRecord {
   chosen: string;
   best: string;
   evLost: number;
+  rationale?: string;
 }
 
 export default function App() {
@@ -128,6 +129,17 @@ export default function App() {
       const topBest = allCandidates[0];
       const evLost = Math.max(0, topBest.ev - chosenEv);
 
+      const rationale = getOptimalActionRationale({
+        actionLabel: topBest.label,
+        evVal: topBest.ev,
+        realizedEquity: analysis.realizedEquity,
+        rawEquity: analysis.rawEquity,
+        toCall: analysis.toCall,
+        potOddsRequired: analysis.toCall > 0 ? analysis.toCall / (state.pot + analysis.toCall) : undefined,
+        outsCount: analysis.outs.length,
+        spr: analysis.spr,
+      });
+
       const record: DecisionRecord = {
         street: state.street,
         rawEquity: analysis.rawEquity,
@@ -135,6 +147,7 @@ export default function App() {
         chosen: label,
         best: topBest.label,
         evLost,
+        rationale,
       };
 
       setDecisions((d) => [...d, record]);

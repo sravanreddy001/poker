@@ -10,6 +10,7 @@ export interface ReviewRecord {
   chosen: string;
   best: string;
   evLost: number;
+  rationale?: string;
 }
 
 interface PostRoundReviewProps {
@@ -186,6 +187,15 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
                         ? '✨ Great decision! Your move matched the highest long-term profit line.'
                         : `💡 By choosing ${d.chosen} instead of ${d.best}, you left ${money(d.evLost)} in expected profit on the table.`}
                     </div>
+
+                    {d.rationale && (
+                      <div className="timeline-rationale-box">
+                        <span className="rationale-icon">🎯</span>
+                        <span className="rationale-text">
+                          <b>Why {d.best}?</b> {d.rationale}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
