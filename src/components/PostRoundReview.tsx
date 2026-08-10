@@ -1,7 +1,7 @@
 import React from 'react';
-import type { Player } from '../engine/game';
+import type { HandState } from '../engine/game';
 import { money } from '../analysis';
-import { CardView } from './CardView';
+import { EquityGraph } from './EquityGraph';
 
 export interface ReviewRecord {
   street: string;
@@ -15,24 +15,20 @@ export interface ReviewRecord {
 
 interface PostRoundReviewProps {
   decisions: ReviewRecord[];
-  players: Player[];
+  state: HandState;
   heroWon: boolean;
   onReplay: () => void;
   onNextHand: () => void;
   seed: number;
-  revealAllHands: boolean;
-  onToggleRevealAllHands: () => void;
 }
 
 export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
   decisions,
-  players,
+  state,
   heroWon,
   onReplay,
   onNextHand,
   seed,
-  revealAllHands,
-  onToggleRevealAllHands,
 }) => {
   const totalEvLost = decisions.reduce((acc, d) => acc + d.evLost, 0);
   const isDecisionGood = totalEvLost < 0.1;
@@ -91,42 +87,8 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
           </div>
         </div>
 
-        {/* Showdown Player Hole Cards Section */}
-        <div className="showdown-hands-section">
-          <div className="showdown-header">
-            <span className="section-label">🎴 Showdown Player Cards</span>
-            <button
-              type="button"
-              className="toggle-hands-btn"
-              onClick={onToggleRevealAllHands}
-            >
-              {revealAllHands ? '🙈 Hide Folded Cards' : '👁️ Reveal All Opponent Cards'}
-            </button>
-          </div>
-
-          <div className="showdown-cards-grid">
-            {players.map((p) => {
-              const isHero = p.id === 0;
-              const labelName = isHero ? 'You (Hero)' : `Bot ${p.id}`;
-              const isFolded = p.folded;
-
-              return (
-                <div key={p.id} className={`showdown-player-card ${isFolded ? 'folded' : ''}`}>
-                  <div className="showdown-player-name">
-                    <span>{labelName}</span>
-                    <span className="showdown-player-status">
-                      {isFolded ? '(Folded)' : money(p.stack)}
-                    </span>
-                  </div>
-                  <div className="showdown-player-hole">
-                    <CardView card={p.hole?.[0]} hidden={!isHero && !revealAllHands && isFolded} />
-                    <CardView card={p.hole?.[1]} hidden={!isHero && !revealAllHands && isFolded} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Hand Progression Win Probability Line Plot */}
+        <EquityGraph state={state} />
 
         {/* 2x2 Outcome vs Decision Quality Matrix */}
         <div className="matrix-section">
@@ -155,7 +117,7 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
         {decisions.length > 0 && (
           <div className="timeline-section">
             <div className="section-header-row">
-              <span className="section-label">🛣️ Street-by-Street Decision Timeline</span>
+              <span className="section-label">区域 Decision Timeline & EV Loss</span>
             </div>
 
             <div className="timeline-cards">

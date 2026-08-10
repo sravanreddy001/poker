@@ -977,77 +977,72 @@ html, body {
   margin-top: 3px;
 }
 
-/* Showdown Hole Cards Section in PostRoundReview */
-.showdown-hands-section {
+/* Equity Progression Graph Component */
+.equity-graph-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
 }
 
-.showdown-header {
+.equity-graph-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.svg-wrapper {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 8px 4px 4px 4px;
+}
+
+.equity-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.legend-pill {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-.toggle-hands-btn {
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid var(--sky);
-  color: var(--text-main);
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.toggle-hands-btn:hover {
-  background: rgba(56, 189, 248, 0.3);
-}
-
-.showdown-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.showdown-player-card {
+  gap: 5px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--line-color);
-  border-radius: 8px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.showdown-player-card.folded {
-  opacity: 0.6;
-}
-
-.showdown-player-name {
+  border-radius: 6px;
+  padding: 3px 8px;
   font-size: 10.5px;
   font-weight: 700;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
 }
 
-.showdown-player-status {
-  font-size: 9.5px;
+.legend-pill.folded {
+  opacity: 0.55;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-name {
+  color: var(--text-main);
+}
+
+.legend-folded-tag {
   color: var(--text-secondary);
-}
-
-.showdown-player-hole {
-  display: flex;
-  gap: 3px;
+  font-size: 9.5px;
 }
 
 .matrix-grid {
