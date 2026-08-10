@@ -186,7 +186,7 @@ function advanceStreet(s: HandState): HandState {
       players: cur.players.map((p) => ({ ...p, committed: 0 })),
     };
 
-    if (actors(cur).length >= 2) return { ...cur, toAct: nextToAct(cur, -1) };
+    if (actors(cur).length >= 2) return { ...cur, toAct: nextToAct(cur, cur.btnSeat) };
   }
 }
 

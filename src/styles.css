@@ -277,6 +277,21 @@ html, body {
   color: var(--emerald);
 }
 
+.hero-pos-banner {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid var(--sky);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  color: #cbd5e1;
+  margin-bottom: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.hero-pos-banner b {
+  color: var(--sky);
+}
+
 /* 3D White Dealer Button */
 .dealer-btn {
   position: absolute;

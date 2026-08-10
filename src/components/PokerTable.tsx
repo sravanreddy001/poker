@@ -16,6 +16,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
   const bbSeat = (btnSeat + 2) % n;
   const btnCoord = getBtnCoord(btnSeat, n);
 
+  const heroPosLabel =
+    0 === btnSeat
+      ? 'Dealer (BTN)'
+      : 0 === sbSeat
+        ? 'Small Blind (SB)'
+        : 0 === bbSeat
+          ? 'Big Blind (BB)'
+          : 'Early Position (UTG)';
+
   return (
     <div className="poker-table-wrapper">
       <div className="poker-oval-table">
@@ -50,6 +59,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
 
         {/* Table Center: Community Board Cards & Pot */}
         <div className="table-center">
+          <div className="hero-pos-banner">
+            📍 You: <b>{heroPosLabel}</b>
+          </div>
           <div className="street-badge">{state.street.toUpperCase()}</div>
           <div className="board-cards">
             {state.board.map((c, i) => (
