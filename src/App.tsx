@@ -64,6 +64,7 @@ export default function App() {
   // Modal states
   const [showTerminology, setShowTerminology] = useState(false);
   const [showHandRankings, setShowHandRankings] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const hero = state.players[0];
   const heroTurn = !state.complete && state.toAct === 0 && !hero.folded;
@@ -185,6 +186,7 @@ export default function App() {
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
+    setShowReviewModal(false);
     setSnap('peek');
     setSnapMemory('peek');
   }, [btnSeat, decisions, hero.stack, seed]);
@@ -194,6 +196,7 @@ export default function App() {
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
+    setShowReviewModal(false);
     setSnap('peek');
     setSnapMemory('peek');
   }, [btnSeat, seed]);
@@ -320,6 +323,35 @@ export default function App() {
               {activeTab === 'villain' && <RangeHeatmap rangePct={VILLAIN_RANGE_PCT} />}
             </BottomSheet>
           )}
+
+          {/* Post-Hand Completion Bar (Shows table & cards first!) */}
+          {state.complete && (
+            <div className="hand-complete-bar">
+              <div className="hand-complete-summary">
+                <span className="complete-title">
+                  {heroWon
+                    ? `🎉 You won ${money(state.awardedPot)}!`
+                    : `Hand Complete • ${money(state.awardedPot)} Pot Awarded`}
+                </span>
+                <span className="complete-sub">Hole cards revealed in place on table</span>
+              </div>
+              <div className="hand-complete-actions">
+                <button
+                  type="button"
+                  className="deep-math-btn"
+                  onClick={() => setShowReviewModal(true)}
+                >
+                  📊 Deep Math Analysis
+                </button>
+                <button type="button" className="replay-hand-btn" onClick={replayHand}>
+                  🔄 Replay
+                </button>
+                <button type="button" className="next-hand-primary-btn" onClick={nextHand}>
+                  Next Hand →
+                </button>
+              </div>
+            </div>
+          )}
         </main>
 
         {/* Terminology Glossary Modal */}
@@ -334,14 +366,15 @@ export default function App() {
           onClose={() => setShowHandRankings(false)}
         />
 
-        {/* Post-Round Feedback Modal Overlay */}
-        {state.complete && (
+        {/* Post-Round Deep Math Review Modal (Opened on demand via button) */}
+        {state.complete && showReviewModal && (
           <PostRoundReview
             decisions={decisions as ReviewRecord[]}
             state={state}
             heroWon={heroWon}
             onReplay={replayHand}
             onNextHand={nextHand}
+            onClose={() => setShowReviewModal(false)}
             seed={seed}
           />
         )}

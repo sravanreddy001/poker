@@ -19,6 +19,7 @@ interface PostRoundReviewProps {
   heroWon: boolean;
   onReplay: () => void;
   onNextHand: () => void;
+  onClose?: () => void;
   seed: number;
 }
 
@@ -28,6 +29,7 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
   heroWon,
   onReplay,
   onNextHand,
+  onClose,
   seed,
 }) => {
   const totalEvLost = decisions.reduce((acc, d) => acc + d.evLost, 0);
@@ -44,118 +46,103 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
     outcomeType = 'CONSEQUENCE';
   }
 
+  let headline = '';
+  let subtext = '';
+
+  switch (outcomeType) {
+    case 'CLEAN_WIN':
+      headline = '🎉 Perfect Play & Win!';
+      subtext = 'You made optimal +EV choices across all streets and claimed the pot.';
+      break;
+    case 'VARIANCE':
+      headline = '🛡️ Optimal Play (Bad Beat)';
+      subtext = 'Your decisions were mathematically sound, but short-term card variance went to your opponent.';
+      break;
+    case 'WON_DESPITE':
+      headline = '⚠️ Lucky Win (Sub-optimal Play)';
+      subtext = 'You won this pot, but surrendered expected EV along the way. Focus on long-term EV math!';
+      break;
+    case 'CONSEQUENCE':
+      headline = '🛑 Sub-optimal Play Cost Chips';
+      subtext = 'Strategic mistakes left profit on the table. Review the street-by-street analysis below to fix leaks.';
+      break;
+  }
+
+  // Leak Detector logic
   let leakTag = '';
   let leakExplanation = '';
-  if (!isDecisionGood) {
-    const worstDecision = [...decisions].sort((a, b) => b.evLost - a.evLost)[0];
-    if (worstDecision) {
-      if (worstDecision.chosen === 'call') {
-        leakTag = 'Unprofitable Call with Draw Out of Position';
-        leakExplanation =
-          'You called with an incomplete drawing hand (e.g. 4 cards to a flush) while acting first (Out of Position). Acting first is a major disadvantage: your opponent can bet again on future streets and force you to fold before your draw completes, making this call unprofitable.';
-      } else if (worstDecision.chosen === 'fold') {
-        leakTag = 'Folded a Profitable Hand to Opponent Bet';
-        leakExplanation =
-          'Your hand had sufficient win odds and pot odds to make calling or betting profitable, but you folded.';
-      } else {
-        leakTag = 'Sub-optimal Bet Size Selected';
-        leakExplanation =
-          'Your bet size was too small or too large compared to the optimal size, surrendering dollar profit ($ EV).';
-      }
-    }
+
+  const preflopEvLost = decisions.filter((d) => d.street === 'preflop').reduce((acc, d) => acc + d.evLost, 0);
+  const postflopEvLost = decisions.filter((d) => d.street !== 'preflop').reduce((acc, d) => acc + d.evLost, 0);
+
+  if (preflopEvLost > 0.5) {
+    leakTag = 'Preflop Over-calling / Loose Opening';
+    leakExplanation = `You lost ${money(preflopEvLost)} in expected value preflop by entering pots with insufficient playable odds. Tighten opening ranges.`;
+  } else if (postflopEvLost > 1.0) {
+    leakTag = 'Postflop Value Mis-Sizing or Over-folding';
+    leakExplanation = `You surrendered ${money(postflopEvLost)} in expected profit on flop/turn/river decisions. Pay attention to pot odds required vs realized equity.`;
   }
 
   return (
-    <div className="review-modal-backdrop">
-      <div className="review-modal-card">
-        {/* Outcome Header Banner */}
-        <div className={`outcome-banner ${outcomeType.toLowerCase()}`}>
-          <div className="outcome-indicator" />
-          <div className="outcome-text-group">
-            <span className="outcome-title">
-              {outcomeType === 'CLEAN_WIN' && 'Clean Win (+EV & Won)'}
-              {outcomeType === 'VARIANCE' && 'Variance (+EV & Lost Runout)'}
-              {outcomeType === 'WON_DESPITE' && 'Won Despite (-EV Mistake)'}
-              {outcomeType === 'CONSEQUENCE' && 'Consequence (-EV Earned Loss)'}
-            </span>
-            <span className="outcome-subtitle">
-              {outcomeType === 'VARIANCE' && 'Your play was mathematically optimal (+EV); short-term runout variance caused the loss.'}
-              {outcomeType === 'WON_DESPITE' && `You won this pot, but your action left ${money(totalEvLost)} in extra profit on the table compared to the optimal move.`}
-              {outcomeType === 'CONSEQUENCE' && `Sub-optimal play left ${money(totalEvLost)} in extra profit on the table compared to the optimal move.`}
-              {outcomeType === 'CLEAN_WIN' && 'Optimal play (+EV) and a winning result!'}
+    <div className="review-modal-backdrop" onClick={onClose}>
+      <div className="review-modal-card" onClick={(e) => e.stopPropagation()}>
+        {onClose && (
+          <button type="button" className="modal-close-icon" onClick={onClose} aria-label="Close modal">
+            ✕
+          </button>
+        )}
+
+        <div className={`review-headline-bar ${outcomeType.toLowerCase()}`}>
+          <div className="headline-title">{headline}</div>
+          <div className="headline-sub">{subtext}</div>
+        </div>
+
+        {/* EV Summary Stat Pill */}
+        <div className="ev-summary-bar">
+          <div className="ev-stat-item">
+            <span className="stat-label">Total EV Surrendered:</span>
+            <span className={`stat-val ${totalEvLost > 0.1 ? 'ev-neg' : 'ev-pos'}`}>
+              {totalEvLost > 0.1 ? `-${money(totalEvLost)}` : '$0.00 (Optimal)'}
             </span>
           </div>
         </div>
 
-        {/* Hand Progression Win Probability Line Plot */}
+        {/* Multi-Player Win Probability Progression Graph */}
         <EquityGraph state={state} />
 
-        {/* 2x2 Outcome vs Decision Quality Matrix */}
-        <div className="matrix-section">
-          <span className="section-label">Decision Quality vs Outcome Matrix</span>
-          <div className="matrix-grid">
-            <div className={`matrix-cell ${outcomeType === 'CLEAN_WIN' ? 'active-cell' : ''}`}>
-              <span className="matrix-cell-title">+EV & Won</span>
-              <span className="matrix-cell-tag">Clean Win</span>
-            </div>
-            <div className={`matrix-cell ${outcomeType === 'VARIANCE' ? 'active-cell' : ''}`}>
-              <span className="matrix-cell-title">+EV & Lost</span>
-              <span className="matrix-cell-tag">Variance</span>
-            </div>
-            <div className={`matrix-cell ${outcomeType === 'WON_DESPITE' ? 'active-cell' : ''}`}>
-              <span className="matrix-cell-title">-EV & Won</span>
-              <span className="matrix-cell-tag">Won Despite</span>
-            </div>
-            <div className={`matrix-cell ${outcomeType === 'CONSEQUENCE' ? 'active-cell' : ''}`}>
-              <span className="matrix-cell-title">-EV & Lost</span>
-              <span className="matrix-cell-tag">Consequence</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Redesigned Street-by-Street Decision Timeline */}
+        {/* Street-by-Street Decision Timeline */}
         {decisions.length > 0 && (
-          <div className="timeline-section">
-            <div className="section-header-row">
-              <span className="section-label">区域 Decision Timeline & EV Loss</span>
-            </div>
-
+          <div className="street-timeline-container">
+            <div className="section-label">📜 Street-by-Street Decision Analysis</div>
             <div className="timeline-cards">
-              {decisions.map((d, idx) => {
-                const isOptimal = d.evLost < 0.1;
+              {decisions.map((dec, idx) => {
+                const isOptimal = dec.evLost < 0.05;
+
                 return (
                   <div key={idx} className={`timeline-card ${isOptimal ? 'optimal' : 'suboptimal'}`}>
                     <div className="timeline-card-header">
-                      <span className="timeline-street-badge">{d.street.toUpperCase()}</span>
-                      <span className={`timeline-status-badge ${isOptimal ? 'optimal-badge' : 'leak-badge-pill'}`}>
-                        {isOptimal ? '💚 Optimal (+EV)' : `⚠️ Profit Left on Table: -${money(d.evLost)}`}
+                      <span className="street-tag">{dec.street.toUpperCase()}</span>
+                      <span className={`ev-result-pill ${isOptimal ? 'pos' : 'neg'}`}>
+                        {isOptimal ? '✅ Optimal (+EV)' : `⚠️ Profit Left: -${money(dec.evLost)}`}
                       </span>
                     </div>
 
-                    <div className="timeline-comparison-grid">
-                      <div className="comparison-col">
-                        <span className="comparison-label">Your Action</span>
-                        <span className="comparison-val chosen">{d.chosen}</span>
+                    <div className="action-compare-row">
+                      <div className="action-box user-action">
+                        <span className="box-label">Your Action</span>
+                        <span className="box-val">{dec.chosen}</span>
                       </div>
-                      <div className="comparison-arrow">→</div>
-                      <div className="comparison-col">
-                        <span className="comparison-label">Optimal Move ($ EV)</span>
-                        <span className="comparison-val best">{d.best}</span>
+                      <div className="action-arrow">➔</div>
+                      <div className="action-box optimal-action">
+                        <span className="box-label">Optimal Move ($ EV)</span>
+                        <span className="box-val">{dec.best}</span>
                       </div>
                     </div>
 
-                    <div className="timeline-coaching-note">
-                      {isOptimal
-                        ? '✨ Great decision! Your move matched the highest long-term profit line.'
-                        : `💡 By choosing ${d.chosen} instead of ${d.best}, you left ${money(d.evLost)} in expected profit on the table.`}
-                    </div>
-
-                    {d.rationale && (
-                      <div className="timeline-rationale-box">
+                    {dec.rationale && (
+                      <div className="tactical-rationale-box">
                         <span className="rationale-icon">🎯</span>
-                        <span className="rationale-text">
-                          <b>Why {d.best}?</b> {d.rationale}
-                        </span>
+                        <span className="rationale-text">{dec.rationale}</span>
                       </div>
                     )}
                   </div>
