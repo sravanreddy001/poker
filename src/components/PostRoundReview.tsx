@@ -150,20 +150,45 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
           </div>
         </div>
 
-        {/* Street-by-Street EV Waterfall */}
+        {/* Redesigned Street-by-Street Decision Timeline */}
         {decisions.length > 0 && (
-          <div className="waterfall-section">
-            <span className="section-label">Street-by-Street EV Surrendered</span>
-            <div className="waterfall-rows">
-              {decisions.map((d, idx) => (
-                <div key={idx} className="waterfall-row">
-                  <span className="waterfall-street">{d.street}</span>
-                  <span className="waterfall-chosen">Action: {d.chosen} (Best: {d.best})</span>
-                  <span className={`waterfall-ev ${d.evLost > 0 ? 'ev-loss' : 'ev-perfect'}`}>
-                    {d.evLost > 0 ? `-${money(d.evLost)}` : money(0)}
-                  </span>
-                </div>
-              ))}
+          <div className="timeline-section">
+            <div className="section-header-row">
+              <span className="section-label">🛣️ Street-by-Street Decision Timeline</span>
+            </div>
+
+            <div className="timeline-cards">
+              {decisions.map((d, idx) => {
+                const isOptimal = d.evLost < 0.1;
+                return (
+                  <div key={idx} className={`timeline-card ${isOptimal ? 'optimal' : 'suboptimal'}`}>
+                    <div className="timeline-card-header">
+                      <span className="timeline-street-badge">{d.street.toUpperCase()}</span>
+                      <span className={`timeline-status-badge ${isOptimal ? 'optimal-badge' : 'leak-badge-pill'}`}>
+                        {isOptimal ? '💚 Optimal (+EV)' : `⚠️ Profit Left on Table: -${money(d.evLost)}`}
+                      </span>
+                    </div>
+
+                    <div className="timeline-comparison-grid">
+                      <div className="comparison-col">
+                        <span className="comparison-label">Your Action</span>
+                        <span className="comparison-val chosen">{d.chosen}</span>
+                      </div>
+                      <div className="comparison-arrow">→</div>
+                      <div className="comparison-col">
+                        <span className="comparison-label">Optimal Move ($ EV)</span>
+                        <span className="comparison-val best">{d.best}</span>
+                      </div>
+                    </div>
+
+                    <div className="timeline-coaching-note">
+                      {isOptimal
+                        ? '✨ Great decision! Your move matched the highest long-term profit line.'
+                        : `💡 By choosing ${d.chosen} instead of ${d.best}, you left ${money(d.evLost)} in expected profit on the table.`}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

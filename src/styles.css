@@ -1081,26 +1081,110 @@ html, body {
   color: var(--text-secondary);
 }
 
-.waterfall-section {
+/* Redesigned Decision Timeline */
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.waterfall-row {
+.timeline-card.optimal {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.timeline-card.suboptimal {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.timeline-card-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--line-color);
 }
 
-.waterfall-ev.ev-loss {
-  color: var(--coral);
+.timeline-street-badge {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--sky);
+  background: rgba(56, 189, 248, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-.waterfall-ev.ev-perfect {
+.timeline-status-badge {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.timeline-status-badge.optimal-badge {
   color: var(--emerald);
+}
+
+.timeline-status-badge.leak-badge-pill {
+  color: #fca5a5;
+}
+
+.timeline-comparison-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.comparison-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comparison-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.comparison-val {
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.comparison-val.chosen {
+  color: var(--text-main);
+}
+
+.comparison-val.best {
+  color: var(--emerald);
+}
+
+.comparison-arrow {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.timeline-coaching-note {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #cbd5e1;
 }
 
 .leak-badge {
