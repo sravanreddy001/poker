@@ -10,6 +10,10 @@ export const TerminologyModal: React.FC<TerminologyModalProps> = ({ isOpen, onCl
 
   const terms = [
     {
+      title: '6-Max Table Positions & Terminology Guide',
+      desc: 'Position dictates action order on every street:\n• 🔴 UTG (Under The Gun): First to act preflop. Must play tightest range since 5 players act after you.\n• 🟠 MP (Middle Position / Hijack): Second to act preflop. Slightly wider opening range than UTG.\n• 🟢 CO (Cutoff): Acts right before the Button. Premium position for stealing blinds.\n• 🟡 BTN (Button / Dealer): Best position at the table! Acts last on every postflop street, maximizing control & equity realization.\n• 🔷 SB (Small Blind): Posts $0.50 blind. Worst postflop position (acts first on every street).\n• 🟣 BB (Big Blind): Posts $1.00 blind. Closes preflop action; gets discounted pot odds to defend.',
+    },
+    {
       title: 'Community Cards (The Board)',
       desc: 'The 5 shared cards dealt face-up in the center of the table across 3 rounds (Flop, Turn, River). All players combine these with their 2 private hole cards to form their best 5-card poker hand.',
     },

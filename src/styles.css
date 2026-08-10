@@ -248,6 +248,24 @@ html, body {
   color: #c084fc;
 }
 
+.position-badge.utg {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--coral);
+  color: var(--coral);
+}
+
+.position-badge.mp {
+  background: rgba(249, 115, 22, 0.2);
+  border: 1px solid #f97316;
+  color: #fb923c;
+}
+
+.position-badge.co {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid var(--emerald);
+  color: var(--emerald);
+}
+
 .seat-cards {
   display: flex;
   gap: 3px;

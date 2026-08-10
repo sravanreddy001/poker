@@ -9,21 +9,22 @@ export interface PokerTableProps {
   state: HandState;
 }
 
+const POS_NAMES_6MAX = [
+  { short: 'BTN', full: 'Button (BTN)' },
+  { short: 'SB', full: 'Small Blind (SB)' },
+  { short: 'BB', full: 'Big Blind (BB)' },
+  { short: 'UTG', full: 'Under The Gun (UTG)' },
+  { short: 'MP', full: 'Middle Position (MP)' },
+  { short: 'CO', full: 'Cutoff (CO)' },
+];
+
 export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
   const btnSeat = state.btnSeat ?? 0;
   const n = state.players.length;
-  const sbSeat = (btnSeat + 1) % n;
-  const bbSeat = (btnSeat + 2) % n;
   const btnCoord = getBtnCoord(btnSeat, n);
 
-  const heroPosLabel =
-    0 === btnSeat
-      ? 'Dealer (BTN)'
-      : 0 === sbSeat
-        ? 'Small Blind (SB)'
-        : 0 === bbSeat
-          ? 'Big Blind (BB)'
-          : 'Early Position (UTG)';
+  const heroOffset = (0 - btnSeat + n) % n;
+  const heroPosLabel = POS_NAMES_6MAX[heroOffset % POS_NAMES_6MAX.length]?.full ?? 'Position';
 
   return (
     <div className="poker-table-wrapper">
@@ -31,8 +32,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
         {/* Seats around the rail */}
         <div className="table-seats">
           {state.players.map((p) => {
-            const posTag =
-              p.id === btnSeat ? 'BTN' : p.id === sbSeat ? 'SB' : p.id === bbSeat ? 'BB' : '';
+            const offset = (p.id - btnSeat + n) % n;
+            const posTag = POS_NAMES_6MAX[offset % POS_NAMES_6MAX.length]?.short ?? '';
 
             return (
               <Seat
