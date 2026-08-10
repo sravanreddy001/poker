@@ -10,6 +10,10 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onCl
 
   const guides = [
     {
+      title: '🎴 Counting Outs Visual Guide (Flush, Open-Ended, Gutshot)',
+      desc: 'An "Out" is any unseen card remaining in the deck that completes your drawing hand into a winner:\n• 💧 Flush Draw (9 Outs): You hold 4 cards of one suit (e.g. 4 Hearts). 13 total hearts in deck minus 4 visible = 9 unseen hearts remaining. (9 × 4 = 36% win chance on Flop).\n• 🛣️ Open-Ended Straight Draw (8 Outs): 4 consecutive cards in a row (e.g. 5-6-7-8). Completed on EITHER END by 4 Nines or 4 Fours. (4 + 4 = 8 outs = 32% win chance on Flop).\n• 🎯 Gutshot Straight Draw (4 Outs): 4 cards with a missing gap in the middle (e.g. 4-5-[gap 6]-7-8). Only 4 Sixes in the deck fill the hole (4 outs = 16% win chance on Flop).\n• 🌟 Monster Combo Draw (15 Outs): Flush Draw + Open-Ended Straight Draw = 9 + 6 = 15 outs (15 × 4 = 60% win chance right on the Flop!).',
+    },
+    {
       title: '🎲 How the Engine Calculates Playable Odds (Monte Carlo Engine)',
       desc: 'Behind the scenes, Playable Odds (Realized Equity) are calculated in 3 steps:\n1. Raw Equity Runouts: The engine runs 2,000 random card deals comparing your hand against opponent\'s estimated starting range to find your pure showdown win % (e.g. 45% Raw Equity).\n2. Postflop Decision Simulation: The engine runs 400 full postflop hand playouts. In each playout, board cards are dealt and the GTO bot engine simulates opponent bets. If opponent bets aggressively out of position, your hand evaluates whether to call or fold early.\n3. Realized Winnings Formula: Playable Odds % = (Net Chips Collected Across All 400 Playouts ÷ Initial Pot). If you fold early in 60 out of 400 playouts, your 45% Raw Equity realizes down to 38% Playable Odds!',
     },
