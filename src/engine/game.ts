@@ -63,6 +63,7 @@ export function startHand(
   seed: number,
   opts: { players: number; stack: number; bigBlind: number },
   buttonIndex = 0,
+  existingStacks?: number[],
 ): HandState {
   const rng = makeRng(seed);
   const deck = shuffled(fullDeck(), rng);
@@ -74,14 +75,19 @@ export function startHand(
   const bbSeat = (btnSeat + 2) % n;
   const utgSeat = (btnSeat + 3) % n;
 
-  const players: Player[] = Array.from({ length: n }, (_, id) => ({
-    id,
-    stack: opts.stack,
-    hole: [deck[drawn++], deck[drawn++]] as Combo,
-    folded: false,
-    committed: 0,
-    isHuman: id === 0,
-  }));
+  const players: Player[] = Array.from({ length: n }, (_, id) => {
+    const prevStack = existingStacks && existingStacks[id] !== undefined ? existingStacks[id] : opts.stack;
+    const startStack = prevStack >= 10 ? prevStack : opts.stack;
+
+    return {
+      id,
+      stack: startStack,
+      hole: [deck[drawn++], deck[drawn++]] as Combo,
+      folded: false,
+      committed: 0,
+      isHuman: id === 0,
+    };
+  });
 
   // Blinds: SB posted at (btn+1), BB posted at (btn+2)
   const sb = opts.bigBlind / 2;

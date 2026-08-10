@@ -163,7 +163,9 @@ export default function App() {
   );
 
   const nextHand = useCallback(() => {
-    const won = hero.stack - OPTS.stack;
+    const currentStacks = state.players.map((p) => (p.stack < 10 ? 100 : p.stack));
+    const heroStartStack = currentStacks[0];
+    const won = hero.stack - heroStartStack;
     const evLost = decisions.reduce((n, d) => n + d.evLost, 0);
 
     setStats((st) => ({
@@ -178,24 +180,39 @@ export default function App() {
     setBtnSeat(nextBtn);
     const next = seed + 1;
     setSeed(next);
-    setState(stepBots(startHand(next, OPTS, nextBtn)));
+    setState(stepBots(startHand(next, OPTS, nextBtn, currentStacks)));
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
     setShowReviewModal(false);
     setSnap('peek');
     setSnapMemory('peek');
-  }, [btnSeat, decisions, hero.stack, seed]);
+  }, [btnSeat, decisions, hero.stack, seed, state.players]);
 
   const replayHand = useCallback(() => {
-    setState(stepBots(startHand(seed, OPTS, btnSeat)));
+    const currentStacks = state.players.map((p) => p.stack);
+    setState(stepBots(startHand(seed, OPTS, btnSeat, currentStacks)));
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
     setShowReviewModal(false);
     setSnap('peek');
     setSnapMemory('peek');
-  }, [btnSeat, seed]);
+  }, [btnSeat, seed, state.players]);
+
+  const resetSession = useCallback(() => {
+    const emptyStats = { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0 };
+    setStats(emptyStats);
+    localStorage.removeItem(STORAGE_KEY);
+    const nextSeed = Math.floor(Math.random() * 1e9);
+    setSeed(nextSeed);
+    setBtnSeat(0);
+    setState(stepBots(startHand(nextSeed, OPTS, 0)));
+    setDecisions([]);
+    setLastFeedback(null);
+    setRevealed(false);
+    setShowReviewModal(false);
+  }, []);
 
   const sizeButtons = useMemo(() => {
     if (!analysis) return [];
@@ -207,16 +224,28 @@ export default function App() {
       <div className="app-root">
         {/* 1. Fixed Header Navigation */}
         <header className="stat-strip">
-          <div className="stat-item">
+          <div className="stat-item" title="Total hands played in this training session">
             Hands <b>{stats.hands}</b>
           </div>
-          <div className="stat-item">
+          <div className="stat-item" title="Net chip profit or loss across session">
             Net <b>{money(stats.actual, { sign: true })}</b>
           </div>
-          <div className="stat-item">
-            EV Lost <b>{money(stats.evLost)}</b>
+          <div
+            className="stat-item"
+            title="Cumulative dollar EV surrendered across all hands in this session (increases whenever a sub-optimal move is made)"
+          >
+            Session EV Lost <b>{money(stats.evLost)}</b>
           </div>
           <div className="header-icon-group">
+            <button
+              type="button"
+              className="header-icon-btn"
+              onClick={resetSession}
+              title="Reset Session Stats & Stacks (🔄)"
+              aria-label="Reset Session Stats & Stacks"
+            >
+              🔄
+            </button>
             <button
               type="button"
               className="header-icon-btn"
