@@ -83,9 +83,30 @@ export default function App() {
     }
   }, [revealed]);
 
+  const allCandidates = useMemo(() => {
+    if (!analysis) return [];
+    const checkEv = analysis.advice.find((o) => o.amount === 0)?.ev ?? 0;
+    const items: { label: string; ev: number; actionType: string; amount?: number }[] = [
+      { label: 'fold', ev: 0, actionType: 'fold' },
+      ...(analysis.toCall > 0
+        ? [{ label: 'call', ev: analysis.potOdds.evOfCall, actionType: 'call' }]
+        : [{ label: 'check', ev: checkEv, actionType: 'check' }]),
+      ...analysis.advice.map((a) => ({
+        label: `${analysis.toCall > 0 ? 'Raise' : 'Bet'} ${money(a.amount)}`,
+        ev: a.ev,
+        actionType: analysis.toCall > 0 ? 'raise' : 'bet',
+        amount: a.amount,
+      })),
+    ];
+    items.sort((a, b) => b.ev - a.ev);
+    return items;
+  }, [analysis]);
+
+  const bestOption = allCandidates[0];
+
   const act = useCallback(
     (action: Action, label: string) => {
-      if (!analysis) return;
+      if (!analysis || allCandidates.length === 0) return;
 
       const checkEv = analysis.advice.find((o) => o.amount === 0)?.ev ?? 0;
       const chosenEv =
@@ -95,25 +116,17 @@ export default function App() {
             ? analysis.potOdds.evOfCall
             : label === 'check'
               ? checkEv
-              : (analysis.advice.find((o) => o.label === label)?.ev ?? 0);
+              : (analysis.advice.find((o) => o.amount === (action.type === 'bet' || action.type === 'raise' ? action.amount : 0))?.ev ?? 0);
 
-      const bestSize = analysis.advice[0];
-      const candidates: { label: string; ev: number }[] = [
-        { label: 'fold', ev: 0 },
-        ...(analysis.toCall > 0
-          ? [{ label: 'call', ev: analysis.potOdds.evOfCall }]
-          : [{ label: 'check', ev: checkEv }]),
-        { label: bestSize.label, ev: bestSize.ev },
-      ];
-      const best = candidates.reduce((a, b) => (b.ev > a.ev ? b : a));
-      const evLost = Math.max(0, best.ev - chosenEv);
+      const topBest = allCandidates[0];
+      const evLost = Math.max(0, topBest.ev - chosenEv);
 
       const record: DecisionRecord = {
         street: state.street,
         rawEquity: analysis.rawEquity,
         realizedEquity: analysis.realizedEquity,
         chosen: label,
-        best: best.label,
+        best: topBest.label,
         evLost,
       };
 
@@ -129,7 +142,7 @@ export default function App() {
 
       setState((s) => stepBots(applyAction(s, action)));
     },
-    [analysis, snapMemory, state.street],
+    [analysis, allCandidates, snapMemory, state.street],
   );
 
   const nextHand = useCallback(() => {
@@ -173,7 +186,7 @@ export default function App() {
   }, [analysis]);
 
   const heroWon = state.complete && state.winners.includes(0);
-  const bestLineLabel = analysis?.advice[0]?.label ?? 'Check';
+  const bestLineLabel = bestOption?.label ?? 'Check';
 
   return (
     <div className="device-container">
