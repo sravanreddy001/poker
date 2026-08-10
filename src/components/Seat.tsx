@@ -10,6 +10,7 @@ export interface SeatProps {
   isCurrentToAct: boolean;
   isComplete: boolean;
   isWinner: boolean;
+  positionTag?: string;
 }
 
 export const Seat: React.FC<SeatProps> = ({
@@ -18,6 +19,7 @@ export const Seat: React.FC<SeatProps> = ({
   isCurrentToAct,
   isComplete,
   isWinner,
+  positionTag = '',
 }) => {
   const slotIndex = getSeatSlot(player.id, totalPlayers);
   const coord = SLOT_COORDS[slotIndex];
@@ -46,7 +48,12 @@ export const Seat: React.FC<SeatProps> = ({
     >
       <div className="seat-badge">
         <div className="seat-name">
-          {name}
+          <span>{name}</span>
+          {positionTag && (
+            <span className={`position-badge ${positionTag.toLowerCase()}`}>
+              {positionTag}
+            </span>
+          )}
           {player.id === 1 && <span className="seat-bluff-tag">Bluff 30%</span>}
         </div>
         <div className="seat-cards">

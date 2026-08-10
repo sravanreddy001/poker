@@ -37,6 +37,7 @@ export interface HandState {
   /** Bets plus raises made on the current street; capped to end re-raise wars. */
   raisesThisStreet: number;
   bigBlind: number;
+  btnSeat: number;
   log: LogEntry[];
   complete: boolean;
   winners: number[];
@@ -61,12 +62,19 @@ const MAX_RAISES_PER_STREET = 4;
 export function startHand(
   seed: number,
   opts: { players: number; stack: number; bigBlind: number },
+  buttonIndex = 0,
 ): HandState {
   const rng = makeRng(seed);
   const deck = shuffled(fullDeck(), rng);
   let drawn = 0;
 
-  const players: Player[] = Array.from({ length: opts.players }, (_, id) => ({
+  const n = opts.players;
+  const btnSeat = ((buttonIndex % n) + n) % n;
+  const sbSeat = (btnSeat + 1) % n;
+  const bbSeat = (btnSeat + 2) % n;
+  const utgSeat = (btnSeat + 3) % n;
+
+  const players: Player[] = Array.from({ length: n }, (_, id) => ({
     id,
     stack: opts.stack,
     hole: [deck[drawn++], deck[drawn++]] as Combo,
@@ -75,12 +83,12 @@ export function startHand(
     isHuman: id === 0,
   }));
 
-  // Blinds: player 1 posts the small blind, player 2 the big blind.
+  // Blinds: SB posted at (btn+1), BB posted at (btn+2)
   const sb = opts.bigBlind / 2;
-  players[1 % players.length].stack -= sb;
-  players[1 % players.length].committed = sb;
-  players[2 % players.length].stack -= opts.bigBlind;
-  players[2 % players.length].committed = opts.bigBlind;
+  players[sbSeat].stack -= sb;
+  players[sbSeat].committed = sb;
+  players[bbSeat].stack -= opts.bigBlind;
+  players[bbSeat].committed = opts.bigBlind;
 
   return {
     seed,
@@ -91,11 +99,12 @@ export function startHand(
     drawn,
     pot: sb + opts.bigBlind,
     street: 'preflop',
-    toAct: 3 % players.length,
+    toAct: utgSeat,
     currentBet: opts.bigBlind,
     actedThisStreet: new Set(),
     raisesThisStreet: 1, // the big blind is the opening bet
     bigBlind: opts.bigBlind,
+    btnSeat,
     log: [],
     complete: false,
     winners: [],

@@ -7,27 +7,36 @@ import { CardView } from './CardView';
 
 export interface PokerTableProps {
   state: HandState;
-  btnSeat?: number;
 }
 
-export const PokerTable: React.FC<PokerTableProps> = ({ state, btnSeat = 0 }) => {
-  const btnCoord = getBtnCoord(btnSeat, state.players.length);
+export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
+  const btnSeat = state.btnSeat ?? 0;
+  const n = state.players.length;
+  const sbSeat = (btnSeat + 1) % n;
+  const bbSeat = (btnSeat + 2) % n;
+  const btnCoord = getBtnCoord(btnSeat, n);
 
   return (
     <div className="poker-table-wrapper">
       <div className="poker-oval-table">
         {/* Seats around the rail */}
         <div className="table-seats">
-          {state.players.map((p) => (
-            <Seat
-              key={p.id}
-              player={p}
-              totalPlayers={state.players.length}
-              isCurrentToAct={state.toAct === p.id}
-              isComplete={state.complete}
-              isWinner={state.winners.includes(p.id)}
-            />
-          ))}
+          {state.players.map((p) => {
+            const posTag =
+              p.id === btnSeat ? 'BTN' : p.id === sbSeat ? 'SB' : p.id === bbSeat ? 'BB' : '';
+
+            return (
+              <Seat
+                key={p.id}
+                player={p}
+                totalPlayers={n}
+                isCurrentToAct={state.toAct === p.id}
+                isComplete={state.complete}
+                isWinner={state.winners.includes(p.id)}
+                positionTag={posTag}
+              />
+            );
+          })}
         </div>
 
         {/* Dealer Button derived from button seat */}

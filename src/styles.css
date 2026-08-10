@@ -221,6 +221,33 @@ html, body {
   font-weight: 700;
 }
 
+.position-badge {
+  font-size: 9.5px;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 3px;
+  text-transform: uppercase;
+}
+
+.position-badge.btn {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--amber);
+  color: var(--text-gold);
+}
+
+.position-badge.sb {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid var(--sky);
+  color: var(--sky);
+}
+
+.position-badge.bb {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid #a855f7;
+  color: #c084fc;
+}
+
 .seat-cards {
   display: flex;
   gap: 3px;

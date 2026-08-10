@@ -48,8 +48,9 @@ interface DecisionRecord {
 }
 
 export default function App() {
+  const [btnSeat, setBtnSeat] = useState(0);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
-  const [state, setState] = useState<HandState>(() => stepBots(startHand(seed, OPTS)));
+  const [state, setState] = useState<HandState>(() => stepBots(startHand(seed, OPTS, 0)));
   const [decisions, setDecisions] = useState<DecisionRecord[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<DecisionRecord | null>(null);
@@ -176,24 +177,26 @@ export default function App() {
       reveals: st.reveals,
     }));
 
+    const nextBtn = (btnSeat + 1) % OPTS.players;
+    setBtnSeat(nextBtn);
     const next = seed + 1;
     setSeed(next);
-    setState(stepBots(startHand(next, OPTS)));
+    setState(stepBots(startHand(next, OPTS, nextBtn)));
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
     setSnap('peek');
     setSnapMemory('peek');
-  }, [decisions, hero.stack, seed]);
+  }, [btnSeat, decisions, hero.stack, seed]);
 
   const replayHand = useCallback(() => {
-    setState(stepBots(startHand(seed, OPTS)));
+    setState(stepBots(startHand(seed, OPTS, btnSeat)));
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
     setSnap('peek');
     setSnapMemory('peek');
-  }, [seed]);
+  }, [btnSeat, seed]);
 
   const sizeButtons = useMemo(() => {
     if (!analysis) return [];
@@ -247,7 +250,7 @@ export default function App() {
         <main className="main-layout">
           {/* Table Zone (Flex: 1) */}
           <section className="table-zone">
-            <PokerTable state={state} btnSeat={0} />
+            <PokerTable state={state} />
           </section>
 
           {/* Peek Strip (Above Action Bar) */}
