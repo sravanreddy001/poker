@@ -211,6 +211,9 @@ export default function App() {
           {heroTurn && analysis && (
             <ActionBar
               toCall={analysis.toCall}
+              pot={state.pot}
+              stack={hero.stack}
+              bigBlind={state.bigBlind}
               sizeButtons={sizeButtons}
               onAct={act}
             />

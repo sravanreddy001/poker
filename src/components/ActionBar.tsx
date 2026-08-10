@@ -1,17 +1,107 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Action } from '../engine/types';
 import type { EvOption } from '../engine/ev';
 import { money } from '../analysis';
 
 export interface ActionBarProps {
   toCall: number;
+  pot: number;
+  stack: number;
+  bigBlind: number;
   sizeButtons: EvOption[];
   onAct: (action: Action, label: string) => void;
 }
 
-export const ActionBar: React.FC<ActionBarProps> = ({ toCall, sizeButtons, onAct }) => {
+export const ActionBar: React.FC<ActionBarProps> = ({
+  toCall,
+  pot,
+  stack,
+  bigBlind,
+  sizeButtons,
+  onAct,
+}) => {
+  const isRaise = toCall > 0;
+  const minAmount = isRaise ? Math.min(stack, Math.max(toCall * 2, bigBlind * 2)) : Math.min(stack, bigBlind);
+  const maxAmount = stack;
+
+  const defaultSelected = sizeButtons.length > 0 ? sizeButtons[0].amount : minAmount;
+  const [selectedAmount, setSelectedAmount] = useState<number>(defaultSelected);
+
+  useEffect(() => {
+    const init = sizeButtons.length > 0 ? sizeButtons[0].amount : minAmount;
+    setSelectedAmount(Math.min(maxAmount, Math.max(minAmount, init)));
+  }, [sizeButtons, minAmount, maxAmount]);
+
+  const handleStep = (delta: number) => {
+    setSelectedAmount((prev) => Math.min(maxAmount, Math.max(minAmount, prev + delta)));
+  };
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedAmount(Number(e.target.value));
+  };
+
+  const verb = isRaise ? 'Raise to' : 'Bet';
+
+  // Quick Preset Sizing Options
+  const presets = [
+    { label: 'Min', amount: minAmount },
+    { label: '1/3 Pot', amount: Math.min(stack, Math.max(minAmount, Math.round(pot / 3))) },
+    { label: '1/2 Pot', amount: Math.min(stack, Math.max(minAmount, Math.round(pot / 2))) },
+    { label: '3/4 Pot', amount: Math.min(stack, Math.max(minAmount, Math.round((pot * 3) / 4))) },
+    { label: 'Pot', amount: Math.min(stack, Math.max(minAmount, Math.round(pot))) },
+    { label: 'All-In', amount: stack },
+  ];
+
   return (
-    <div className="action-bar-container">
+    <div className="action-bar-container extended">
+      {/* 1. Quick Preset Sizing Pills */}
+      <div className="preset-pills-row">
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            className={`preset-pill ${selectedAmount === p.amount ? 'active' : ''}`}
+            onClick={() => setSelectedAmount(p.amount)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 2. Custom Amount Slider + Steppers (- / +) */}
+      <div className="slider-controls-row">
+        <button
+          type="button"
+          className="step-btn"
+          onClick={() => handleStep(-bigBlind)}
+          disabled={selectedAmount <= minAmount}
+          aria-label="Decrease bet"
+        >
+          -
+        </button>
+        <input
+          type="range"
+          className="bet-slider"
+          min={minAmount}
+          max={maxAmount}
+          step={bigBlind}
+          value={selectedAmount}
+          onChange={handleSliderChange}
+          aria-label="Custom bet slider"
+        />
+        <button
+          type="button"
+          className="step-btn"
+          onClick={() => handleStep(bigBlind)}
+          disabled={selectedAmount >= maxAmount}
+          aria-label="Increase bet"
+        >
+          +
+        </button>
+        <span className="selected-amount-badge">{money(selectedAmount)}</span>
+      </div>
+
+      {/* 3. Primary Action Buttons */}
       <div className="action-grid">
         {toCall > 0 ? (
           <>
@@ -37,7 +127,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ toCall, sizeButtons, onAct
         ) : (
           <button
             type="button"
-            className="action-btn btn-check span-half"
+            className="action-btn btn-check"
             onClick={() => onAct({ type: 'check' }, 'check')}
             aria-label="Check"
           >
@@ -46,26 +136,21 @@ export const ActionBar: React.FC<ActionBarProps> = ({ toCall, sizeButtons, onAct
           </button>
         )}
 
-        {sizeButtons.slice(0, 2).map((o, idx) => {
-          const isRaise = toCall > 0;
-          const verb = isRaise ? 'Raise to' : 'Bet';
-          const labelText = `${verb} ${money(o.amount)}`;
-          const subText = o.label;
-          const btnClass = idx === 0 ? 'btn-bet-primary' : 'btn-bet-secondary';
-
-          return (
-            <button
-              key={o.label}
-              type="button"
-              className={`action-btn ${btnClass}`}
-              onClick={() => onAct({ type: isRaise ? 'raise' : 'bet', amount: o.amount }, o.label)}
-              aria-label={`${labelText}, ${subText}`}
-            >
-              <span className="btn-title">{labelText}</span>
-              <span className="btn-sub">{subText}</span>
-            </button>
-          );
-        })}
+        {/* Dynamic Raise / Bet Button for Selected Amount */}
+        <button
+          type="button"
+          className="action-btn btn-bet-primary span-raise"
+          onClick={() =>
+            onAct(
+              { type: isRaise ? 'raise' : 'bet', amount: selectedAmount },
+              `${verb.toLowerCase()} ${selectedAmount}`,
+            )
+          }
+          aria-label={`${verb} ${money(selectedAmount)}`}
+        >
+          <span className="btn-title">{verb} {money(selectedAmount)}</span>
+          <span className="btn-sub">Custom Amount</span>
+        </button>
       </div>
     </div>
   );
