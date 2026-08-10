@@ -75,8 +75,8 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
             </span>
             <span className="outcome-subtitle">
               {outcomeType === 'VARIANCE' && 'Your play was mathematically optimal (+EV); short-term runout variance caused the loss.'}
-              {outcomeType === 'WON_DESPITE' && 'You won the pot, but your action surrendered expected profit ($ EV).'}
-              {outcomeType === 'CONSEQUENCE' && `Surrendered ${money(totalEvLost)} in expected value due to sub-optimal decisions.`}
+              {outcomeType === 'WON_DESPITE' && `You won this pot, but your action left ${money(totalEvLost)} in extra profit on the table compared to the optimal move.`}
+              {outcomeType === 'CONSEQUENCE' && `Sub-optimal play left ${money(totalEvLost)} in extra profit on the table compared to the optimal move.`}
               {outcomeType === 'CLEAN_WIN' && 'Optimal play (+EV) and a winning result!'}
             </span>
           </div>
