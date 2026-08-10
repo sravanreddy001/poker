@@ -1,4 +1,5 @@
 import React from 'react';
+import { money } from '../analysis';
 
 export interface ReviewRecord {
   street: string;
@@ -25,13 +26,8 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
   seed,
 }) => {
   const totalEvLost = decisions.reduce((acc, d) => acc + d.evLost, 0);
-  const isDecisionGood = totalEvLost < 0.1; // EV lost near 0
+  const isDecisionGood = totalEvLost < 0.1;
 
-  // Outcome Classification:
-  // Variance: +EV decision & lost anyway
-  // Consequence: -EV decision & lost
-  // Won-Despite: -EV decision & won anyway
-  // Clean Win: +EV decision & won
   let outcomeType: 'VARIANCE' | 'CONSEQUENCE' | 'WON_DESPITE' | 'CLEAN_WIN' = 'CLEAN_WIN';
   if (isDecisionGood && heroWon) {
     outcomeType = 'CLEAN_WIN';
@@ -43,17 +39,16 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
     outcomeType = 'CONSEQUENCE';
   }
 
-  // Leak tag identification
   let leakTag = '';
   if (!isDecisionGood) {
     const worstDecision = [...decisions].sort((a, b) => b.evLost - a.evLost)[0];
     if (worstDecision) {
       if (worstDecision.chosen === 'call') {
-        leakTag = 'Overcalled draw out of position';
+        leakTag = 'Overcalled draw out of position (Surrendered Realized Equity)';
       } else if (worstDecision.chosen === 'fold') {
-        leakTag = 'Overfolded to river aggression';
+        leakTag = 'Overfolded to aggression (Folded +EV hand)';
       } else {
-        leakTag = 'Suboptimal bet sizing';
+        leakTag = 'Suboptimal bet sizing (Missed Max Expected Value)';
       }
     }
   }
@@ -63,15 +58,7 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
       <div className="review-modal-card">
         {/* Outcome Header Banner */}
         <div className={`outcome-banner ${outcomeType.toLowerCase()}`}>
-          <span className="outcome-icon">
-            {outcomeType === 'CLEAN_WIN'
-              ? '🏆'
-              : outcomeType === 'VARIANCE'
-                ? '🛡️'
-                : outcomeType === 'WON_DESPITE'
-                  ? '⚠️'
-                  : '💥'}
-          </span>
+          <div className="outcome-indicator" />
           <div className="outcome-text-group">
             <span className="outcome-title">
               {outcomeType === 'CLEAN_WIN' && 'Clean Win (+EV & Won)'}
@@ -80,10 +67,10 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
               {outcomeType === 'CONSEQUENCE' && 'Consequence (-EV Earned Loss)'}
             </span>
             <span className="outcome-subtitle">
-              {outcomeType === 'VARIANCE' && 'Your play was mathematically optimal; runout variance caused the loss.'}
-              {outcomeType === 'WON_DESPITE' && 'You won the pot, but your action was sub-optimal in EV.'}
-              {outcomeType === 'CONSEQUENCE' && `Surrendered ${totalEvLost.toFixed(2)} BB in expected value.`}
-              {outcomeType === 'CLEAN_WIN' && 'Optimal play and a winning result!'}
+              {outcomeType === 'VARIANCE' && 'Your play was mathematically optimal (+EV); short-term runout variance caused the loss.'}
+              {outcomeType === 'WON_DESPITE' && 'You won the pot, but your action was sub-optimal in long-term Expected Value ($ EV).'}
+              {outcomeType === 'CONSEQUENCE' && `Surrendered ${money(totalEvLost)} in expected value due to sub-optimal decisions.`}
+              {outcomeType === 'CLEAN_WIN' && 'Optimal play (+EV) and a winning result!'}
             </span>
           </div>
         </div>
@@ -121,7 +108,7 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
                   <span className="waterfall-street">{d.street}</span>
                   <span className="waterfall-chosen">Action: {d.chosen} (Best: {d.best})</span>
                   <span className={`waterfall-ev ${d.evLost > 0 ? 'ev-loss' : 'ev-perfect'}`}>
-                    {d.evLost > 0 ? `-${d.evLost.toFixed(2)} BB` : '0.00 BB'}
+                    {d.evLost > 0 ? `-${money(d.evLost)}` : money(0)}
                   </span>
                 </div>
               ))}
@@ -132,15 +119,24 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
         {/* Leak Tag Warning Badge */}
         {leakTag && (
           <div className="leak-badge">
-            <span className="leak-icon">⚠️</span>
             <span className="leak-text">Leak Identified: <b>{leakTag}</b></span>
           </div>
         )}
 
+        {/* Educational Definition Note */}
+        <div className="learning-card">
+          <div className="learning-card-header">
+            <span>💡 Core Teaching Criterion</span>
+          </div>
+          <div className="learning-card-body">
+            Separate decision quality from short-term outcome. Focus on choosing <b>+EV actions</b> over time, as variance evens out over large hand volume.
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="review-modal-actions">
           <button type="button" className="replay-btn" onClick={onReplay}>
-            🔄 What-If Replay Hand (Seed #{seed})
+            Replay Hand (Seed #{seed})
           </button>
           <button type="button" className="next-hand-btn" onClick={onNextHand}>
             Next Hand →

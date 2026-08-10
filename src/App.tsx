@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { startHand, applyAction, stepBots, HandState } from './engine/game';
 import type { Action } from './engine/types';
-import { analyseSpot, cardLabel, chips, pct, HeroAnalysis, VILLAIN_RANGE_PCT } from './analysis';
-import type { Card } from './engine/cards';
-import { EquityGauge } from './components/EquityGauge';
+import { analyseSpot, money, HeroAnalysis, VILLAIN_RANGE_PCT } from './analysis';
+import { PokerTable } from './components/PokerTable';
+import { ActionBar } from './components/ActionBar';
+import { PeekStrip } from './components/PeekStrip';
+import { EquityBar } from './components/EquityBar';
+import { OutsStrip } from './components/OutsStrip';
 import { EVBarChart } from './components/EVBarChart';
 import { RangeHeatmap } from './components/RangeHeatmap';
-import { BottomSheet } from './components/BottomSheet';
+import { BottomSheet, SnapPoint } from './components/BottomSheet';
 import { PostRoundReview, ReviewRecord } from './components/PostRoundReview';
 
 const OPTS = { players: 6, stack: 100, bigBlind: 1 };
@@ -41,26 +44,6 @@ interface DecisionRecord {
   evLost: number;
 }
 
-function CardView({ card, hidden, fourColor }: { card?: Card; hidden?: boolean; fourColor?: boolean }) {
-  if (hidden || card === undefined) return <span className="card back" aria-label="hidden card" />;
-  const { rank, suit, red } = cardLabel(card);
-
-  let suitClass = red ? 'red' : 'black';
-  if (fourColor) {
-    if (suit === '♠') suitClass = 'spades';
-    else if (suit === '♥') suitClass = 'hearts';
-    else if (suit === '♦') suitClass = 'diamonds';
-    else if (suit === '♣') suitClass = 'clubs';
-  }
-
-  return (
-    <span className={`card ${suitClass}`} aria-label={`${rank}${suit}`}>
-      <b>{rank}</b>
-      <i>{suit}</i>
-    </span>
-  );
-}
-
 export default function App() {
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const [state, setState] = useState<HandState>(() => stepBots(startHand(seed, OPTS)));
@@ -68,7 +51,11 @@ export default function App() {
   const [revealed, setRevealed] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<DecisionRecord | null>(null);
   const [stats, setStats] = useState<SessionStats>(loadStats);
-  const [fourColorDeck, setFourColorDeck] = useState(true);
+
+  // Sheet state
+  const [snap, setSnap] = useState<SnapPoint>('peek');
+  const [snapMemory, setSnapMemory] = useState<SnapPoint>('peek');
+  const [activeTab, setActiveTab] = useState<'equity' | 'lines' | 'villain'>('equity');
 
   const hero = state.players[0];
   const heroTurn = !state.complete && state.toAct === 0 && !hero.folded;
@@ -81,6 +68,20 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
   }, [stats]);
+
+  const handleSnapChange = useCallback((newSnap: SnapPoint) => {
+    setSnap(newSnap);
+    if (newSnap !== 'peek') {
+      setSnapMemory(newSnap);
+    }
+  }, []);
+
+  const handleReveal = useCallback(() => {
+    if (!revealed) {
+      setRevealed(true);
+      setStats((st) => ({ ...st, reveals: st.reveals + 1 }));
+    }
+  }, [revealed]);
 
   const act = useCallback(
     (action: Action, label: string) => {
@@ -119,9 +120,16 @@ export default function App() {
       setDecisions((d) => [...d, record]);
       setLastFeedback(record);
       setRevealed(false);
+
+      if (snapMemory !== 'peek') {
+        setSnap(snapMemory);
+      } else {
+        setSnap('peek');
+      }
+
       setState((s) => stepBots(applyAction(s, action)));
     },
-    [analysis, state.street],
+    [analysis, snapMemory, state.street],
   );
 
   const nextHand = useCallback(() => {
@@ -142,6 +150,8 @@ export default function App() {
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
+    setSnap('peek');
+    setSnapMemory('peek');
   }, [decisions, hero.stack, seed]);
 
   const replayHand = useCallback(() => {
@@ -149,6 +159,8 @@ export default function App() {
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
+    setSnap('peek');
+    setSnapMemory('peek');
   }, [seed]);
 
   const sizeButtons = useMemo(() => {
@@ -161,238 +173,103 @@ export default function App() {
   }, [analysis]);
 
   const heroWon = state.complete && state.winners.includes(0);
+  const bestLineLabel = analysis?.advice[0]?.label ?? 'Check';
 
   return (
-    <div className="app">
-      <header>
-        <h1>
-          Poker Probability Trainer
-          <button
-            type="button"
-            className="deck-toggle-btn"
-            onClick={() => setFourColorDeck((p) => !p)}
-          >
-            {fourColorDeck ? '🎨 4-Color Deck ON' : '♠ 2-Color Deck'}
-          </button>
-        </h1>
-        <div className="session">
-          <span className="session-stat-item">Hands <b>{stats.hands}</b></span>
-          <span className="session-stat-item">Actual <b>{chips(stats.actual)}bb</b></span>
-          <span className="session-stat-item">Expected <b>{chips(stats.expected)}bb</b></span>
-          <span className="session-stat-item">EV lost <b>{chips(stats.evLost)}bb</b></span>
-          <span className="session-stat-item">Reveals <b>{stats.reveals}</b></span>
-        </div>
-      </header>
-
-      <main>
-        <section className="table-area">
-          <div className="opponents">
-            {state.players.slice(1).map((p) => (
-              <div
-                key={p.id}
-                className={`seat ${p.folded ? 'folded' : ''} ${
-                  state.toAct === p.id && !state.complete ? 'active' : ''
-                }`}
-              >
-                <div className="seat-name">
-                  Bot {p.id}
-                  {p.id === 1 && <span className="seat-bluff-tag">Bluff 30%</span>}
-                </div>
-                <div className="seat-cards">
-                  <CardView card={p.hole?.[0]} hidden={!state.complete || p.folded} fourColor={fourColorDeck} />
-                  <CardView card={p.hole?.[1]} hidden={!state.complete || p.folded} fourColor={fourColorDeck} />
-                </div>
-                <div className="seat-stack">{chips(p.stack)}bb</div>
-                {p.committed > 0 && !state.complete && (
-                  <div className="seat-bet">bet {chips(p.committed)}</div>
-                )}
-                {p.folded && <div className="seat-tag">folded</div>}
-                {state.complete && state.winners.includes(p.id) && (
-                  <div className="seat-tag won">won</div>
-                )}
-              </div>
-            ))}
+    <div className="device-container">
+      <div className="app-root">
+        {/* 1. Stat Strip Header */}
+        <header className="stat-strip">
+          <div className="stat-item">
+            Hands <b>{stats.hands}</b>
           </div>
-
-          <div className="board">
-            <div className="street-label">{state.street.toUpperCase()}</div>
-            <div className="board-cards">
-              {state.board.map((c, i) => (
-                <CardView key={i} card={c} fourColor={fourColorDeck} />
-              ))}
-              {Array.from({ length: 5 - state.board.length }).map((_, i) => (
-                <span key={`e${i}`} className="card empty" />
-              ))}
-            </div>
-            <div className="pot-badge">
-              {state.complete
-                ? `Final Pot: ${chips(state.awardedPot)}bb`
-                : `Pot: ${chips(state.pot)}bb`}
-            </div>
+          <div className="stat-item">
+            Net <b>{money(stats.actual, { sign: true })}</b>
           </div>
-
-          <div className="hero-wrapper">
-            {heroTurn && analysis && (
-              <div className="quick-hint-pill">
-                ⚡ {analysis.outs.length} Outs x {analysis.cardsToCome === 2 ? 4 : 2} ={' '}
-                {analysis.ruleOfNEstimate !== null ? pct(analysis.ruleOfNEstimate) : ''} Rule
-                (Actual: {pct(analysis.rawEquity)})
-              </div>
-            )}
-
-            <div className="hero">
-              <div className="seat-name">You (Hero)</div>
-              <div className="seat-cards">
-                <CardView card={hero.hole?.[0]} fourColor={fourColorDeck} />
-                <CardView card={hero.hole?.[1]} fourColor={fourColorDeck} />
-              </div>
-              <div className="seat-stack">{chips(hero.stack)}bb</div>
-              {hero.folded && <div className="seat-tag">folded</div>}
-            </div>
+          <div className="stat-item">
+            EV Lost <b>{money(stats.evLost)}</b>
           </div>
+        </header>
 
+        {/* 2. Main Table & Action Layout */}
+        <main className="main-layout">
+          {/* Table Zone (Flex: 1) */}
+          <section className="table-zone">
+            <PokerTable state={state} btnSeat={0} />
+          </section>
+
+          {/* Peek Strip (Above Action Bar) */}
           {heroTurn && analysis && (
-            <div className="actions">
-              {analysis.toCall > 0 ? (
-                <>
-                  <button className="danger" onClick={() => act({ type: 'fold' }, 'fold')}>Fold</button>
-                  <button className="success" onClick={() => act({ type: 'call' }, 'call')}>
-                    Call {chips(analysis.toCall)}bb
-                  </button>
-                </>
-              ) : (
-                <button className="success" onClick={() => act({ type: 'check' }, 'check')}>Check</button>
-              )}
-              {sizeButtons.map((o) => (
-                <button
-                  key={o.label}
-                  className="primary"
-                  onClick={() =>
-                    act({ type: analysis.toCall > 0 ? 'raise' : 'bet', amount: o.amount }, o.label)
-                  }
-                >
-                  {analysis.toCall > 0 ? 'Raise to' : 'Bet'} {chips(o.amount)}bb ({o.label})
-                </button>
-              ))}
-            </div>
+            <PeekStrip
+              realizedEquity={analysis.realizedEquity}
+              bestLineLabel={bestLineLabel}
+              onOpenSheet={() => handleSnapChange(snapMemory === 'peek' ? 'half' : snapMemory)}
+            />
           )}
 
-          {/* Expandable Bottom Sheet for Mobile Math & Deep Analysis */}
+          {/* Fixed Action Bar Footer */}
           {heroTurn && analysis && (
-            <BottomSheet title="Math & Deep Analysis" defaultExpanded={true}>
-              <EquityGauge
-                rawEquity={analysis.rawEquity}
-                realizedEquity={analysis.realizedEquity}
-              />
+            <ActionBar
+              toCall={analysis.toCall}
+              sizeButtons={sizeButtons}
+              onAct={act}
+            />
+          )}
 
-              <EVBarChart
-                advice={analysis.advice}
-                potOddsEvOfCall={analysis.potOdds.evOfCall}
-                toCall={analysis.toCall}
-                chosenLabel={lastFeedback?.chosen}
-              />
+          {/* Expandable Bottom Sheet */}
+          {heroTurn && analysis && (
+            <BottomSheet
+              snap={snap}
+              onSnapChange={handleSnapChange}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            >
+              {activeTab === 'equity' && (
+                <>
+                  <EquityBar
+                    rawEquity={analysis.rawEquity}
+                    realizedEquity={analysis.realizedEquity}
+                    realizationFactor={analysis.realizationFactor}
+                    breakEvenOdds={
+                      analysis.toCall > 0 ? analysis.toCall / (state.pot + analysis.toCall) : undefined
+                    }
+                  />
+                  <OutsStrip
+                    outs={analysis.outs}
+                    ruleOfNEstimate={analysis.ruleOfNEstimate}
+                    cardsToCome={analysis.cardsToCome}
+                    rawEquity={analysis.rawEquity}
+                  />
+                </>
+              )}
 
-              <RangeHeatmap rangePct={VILLAIN_RANGE_PCT} />
+              {activeTab === 'lines' && (
+                <EVBarChart
+                  advice={analysis.advice}
+                  potOddsEvOfCall={analysis.potOdds.evOfCall}
+                  toCall={analysis.toCall}
+                  chosenLabel={lastFeedback?.chosen}
+                  revealed={revealed}
+                  onReveal={handleReveal}
+                />
+              )}
+
+              {activeTab === 'villain' && <RangeHeatmap rangePct={VILLAIN_RANGE_PCT} />}
             </BottomSheet>
           )}
-        </section>
+        </main>
 
-        <aside className="panels">
-          {heroTurn && analysis && (
-            <>
-              <div className="panel">
-                <h2>Your Equity Details</h2>
-                <div className="stat-row">
-                  <span>Raw Equity</span>
-                  <b>{pct(analysis.rawEquity)}{analysis.exact ? '' : ' ±'}</b>
-                </div>
-                <div className="stat-row">
-                  <span>Realized Equity</span>
-                  <b>{pct(analysis.realizedEquity)}</b>
-                </div>
-                <div className="stat-row muted">
-                  <span>Realization Multiplier</span>
-                  <b>{pct(analysis.realizationFactor)}</b>
-                </div>
-              </div>
-
-              {analysis.outs.length > 0 && (
-                <div className="panel">
-                  <h2>Outs Shortcut</h2>
-                  <div className="stat-row">
-                    <span>Outs Count</span>
-                    <b>{analysis.outs.length} cards</b>
-                  </div>
-                  {analysis.ruleOfNEstimate !== null && (
-                    <div className="stat-row">
-                      <span>Shortcut ({analysis.outs.length} × {analysis.cardsToCome === 2 ? 4 : 2})</span>
-                      <b>{pct(analysis.ruleOfNEstimate)}</b>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="panel">
-                <h2>Advisor Peek</h2>
-                {revealed ? (
-                  <ul className="advice">
-                    {analysis.advice.map((o, i) => (
-                      <li key={o.label} className={i === 0 ? 'best' : ''}>
-                        <span>{o.label}</span>
-                        <b>
-                          {o.ev >= 0 ? '+' : ''}
-                          {chips(o.ev)}bb
-                        </b>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <button
-                    className="ghost"
-                    onClick={() => {
-                      setRevealed(true);
-                      setStats((st) => ({ ...st, reveals: st.reveals + 1 }));
-                    }}
-                  >
-                    Show Advice (Logged)
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-
-          {lastFeedback && !heroTurn && !state.complete && (
-            <div className="panel">
-              <h2>Last decision</h2>
-              <div className="stat-row">
-                <span>You chose</span>
-                <b>{lastFeedback.chosen}</b>
-              </div>
-              <div className="stat-row">
-                <span>Max EV line</span>
-                <b>{lastFeedback.best}</b>
-              </div>
-              <div className="stat-row">
-                <span>EV lost</span>
-                <b className={lastFeedback.evLost < 0.5 ? 'good' : 'bad'}>
-                  {chips(lastFeedback.evLost)}bb
-                </b>
-              </div>
-            </div>
-          )}
-        </aside>
-      </main>
-
-      {/* Post-Round Feedback Modal Overlay */}
-      {state.complete && (
-        <PostRoundReview
-          decisions={decisions as ReviewRecord[]}
-          heroWon={heroWon}
-          onReplay={replayHand}
-          onNextHand={nextHand}
-          seed={seed}
-        />
-      )}
+        {/* Post-Round Feedback Modal Overlay */}
+        {state.complete && (
+          <PostRoundReview
+            decisions={decisions as ReviewRecord[]}
+            heroWon={heroWon}
+            onReplay={replayHand}
+            onNextHand={nextHand}
+            seed={seed}
+          />
+        )}
+      </div>
     </div>
   );
 }

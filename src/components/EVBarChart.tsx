@@ -1,16 +1,14 @@
 import React from 'react';
+import { EvOption } from '../engine/ev';
+import { money, DEFINITIONS } from '../analysis';
 
-export interface AdviceItem {
-  label: string;
-  amount: number;
-  ev: number;
-}
-
-interface EVBarChartProps {
-  advice: AdviceItem[];
+export interface EVBarChartProps {
+  advice: EvOption[];
   potOddsEvOfCall?: number;
   toCall?: number;
   chosenLabel?: string;
+  revealed: boolean;
+  onReveal: () => void;
 }
 
 export const EVBarChart: React.FC<EVBarChartProps> = ({
@@ -18,11 +16,11 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
   potOddsEvOfCall = 0,
   toCall = 0,
   chosenLabel,
+  revealed,
+  onReveal,
 }) => {
-  // Build a complete candidate list including Fold, Call (if toCall > 0), and Bet sizes
   const candidates: { label: string; ev: number }[] = [];
 
-  // Fold is always EV 0
   candidates.push({ label: 'fold', ev: 0 });
 
   if (toCall > 0) {
@@ -30,22 +28,29 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
   }
 
   advice.forEach((item) => {
-    // avoid duplication if label exists
     if (!candidates.some((c) => c.label === item.label)) {
       candidates.push({ label: item.label, ev: item.ev });
     }
   });
 
-  // Sort descending by EV
   candidates.sort((a, b) => b.ev - a.ev);
 
   const maxEv = Math.max(...candidates.map((c) => Math.abs(c.ev)), 1);
+  const bestOption = candidates[0];
 
   return (
-    <div className="ev-barchart-container">
+    <div className="ev-barchart-card">
       <div className="ev-barchart-header">
-        <span className="ev-barchart-title">Candidate Action EV Comparison</span>
-        <span className="ev-barchart-unit">(in Big Blinds)</span>
+        <span className="ev-barchart-title" title={DEFINITIONS.ev}>
+          Action Expected Profit ($ EV)
+        </span>
+        {!revealed ? (
+          <button type="button" className="reveal-btn" onClick={onReveal}>
+            🔓 Reveal EV Values (Logged)
+          </button>
+        ) : (
+          <span className="ev-barchart-unit">(in Dollars)</span>
+        )}
       </div>
 
       <div className="ev-barchart-rows">
@@ -62,22 +67,36 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
             >
               <div className="ev-bar-label-area">
                 <span className="ev-bar-label">{item.label}</span>
-                {isChosen && <span className="chosen-badge">Your Choice</span>}
+                {isBest && <span className="best-marker-badge">BEST</span>}
+                {isChosen && <span className="chosen-badge">YOUR CHOICE</span>}
               </div>
 
               <div className="ev-bar-track">
                 <div
-                  className={`ev-bar-fill ${isBest ? 'bar-best' : isNegative ? 'bar-neg' : 'bar-neutral'}`}
+                  className={`ev-bar-fill ${
+                    isBest ? 'bar-best' : isNegative ? 'bar-neg' : 'bar-neutral'
+                  }`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
 
               <span className={`ev-bar-val ${item.ev > 0 ? 'pos-ev' : item.ev < 0 ? 'neg-ev' : ''}`}>
-                {item.ev >= 0 ? `+${item.ev.toFixed(2)}` : item.ev.toFixed(2)} BB
+                {revealed ? money(item.ev, { sign: true }) : '••••'}
               </span>
             </div>
           );
         })}
+      </div>
+
+      {/* Educational Definition Card */}
+      <div className="learning-card">
+        <div className="learning-card-header">
+          <span>🎯 Definition: Expected Value ($ EV) & Pot Odds</span>
+        </div>
+        <div className="learning-card-body">
+          <b>Expected Value ($ EV)</b> is the average long-term dollar outcome of each action.<br />
+          <b>Best Action</b>: <b>{bestOption.label}</b> yields the highest expected profit ({money(bestOption.ev, { sign: true })}).
+        </div>
       </div>
     </div>
   );

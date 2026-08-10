@@ -26,6 +26,18 @@ export interface HeroAnalysis {
   bluffFreq: number;
 }
 
+export const DEFINITIONS = {
+  rawEquity: 'Showdown Win Odds (Raw Equity): Your chance of holding the best 5-card hand at showdown if no further bets are placed.',
+  realizedEquity: 'Playable Win Odds (Realized Equity): Your actual win chance when accounting for future betting rounds and folding out of position.',
+  realizationFactor: 'Position Retention (Realization Factor): The percentage of your showdown odds retained vs surrendered to table position and opponent betting.',
+  potOdds: 'Break-Even Call Odds (Pot Odds): The minimum win percentage required for a call to break even long-term.',
+  ev: 'Expected Value ($ EV): The average profit or loss of an action over many hands.',
+  outs: 'Winning Cards (Outs): Cards remaining in the deck that improve your hand to a winner.',
+  ruleOf42: 'Rule of 4/2 Shortcut: Multiply outs by 4 on the Flop (2 cards to come) or 2 on the Turn (1 card to come) to estimate your win percentage.',
+  spr: 'Stack-to-Pot Ratio (SPR): Your remaining stack divided by the pot size.',
+  villainRange: 'Opponent Opening Range: The set of 13×13 starting hand combinations your opponent is likely playing.',
+};
+
 /** Suit indices are c,d,h,s — diamonds and hearts render red. */
 export function cardLabel(c: Card): { rank: string; suit: string; red: boolean } {
   const suit = suitOf(c);
@@ -34,6 +46,27 @@ export function cardLabel(c: Card): { rank: string; suit: string; red: boolean }
     suit: ['♣', '♦', '♥', '♠'][suit],
     red: suit === 1 || suit === 2,
   };
+}
+
+export const BLIND_SIZE = 1; // dollars per big blind
+
+export function money(bb: number, opts?: { sign?: boolean }): string {
+  const v = bb * BLIND_SIZE;
+  const absV = Math.abs(v);
+  const body = Number.isInteger(absV) ? `$${absV}` : `$${absV.toFixed(2)}`;
+  if (!opts?.sign) return v < 0 ? `-${body}` : body;
+  return v > 0 ? `+${body}` : v < 0 ? `-${body}` : body;
+}
+
+export function isHeroInPosition(s: HandState, heroSeat = 0, btnSeat = 0): boolean {
+  const activeOpponents = s.players.filter((p) => !p.folded && p.id !== heroSeat);
+  if (activeOpponents.length === 0) return true;
+  const N = s.players.length;
+  const heroRank = (heroSeat - btnSeat - 1 + N) % N;
+  return activeOpponents.every((p) => {
+    const oppRank = (p.id - btnSeat - 1 + N) % N;
+    return heroRank > oppRank;
+  });
 }
 
 /**
@@ -56,7 +89,7 @@ export function analyseSpot(s: HandState): HeroAnalysis {
     pot: s.pot,
     stack: hero.stack,
     bigBlind: s.bigBlind,
-    inPosition: true,
+    inPosition: isHeroInPosition(s, 0, 0),
     villainRange,
   };
 
@@ -92,6 +125,3 @@ export function pct(x: number): string {
   return `${Math.round(x * 100)}%`;
 }
 
-export function chips(x: number): string {
-  return Number.isInteger(x) ? `${x}` : x.toFixed(1);
-}
