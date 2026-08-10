@@ -203,8 +203,8 @@ export default function App() {
   }, [analysis]);
 
   return (
-    <div className="app-viewport">
-      <div className="app-device-container">
+    <div className="device-container">
+      <div className="app-root">
         {/* 1. Fixed Header Navigation */}
         <header className="stat-strip">
           <div className="stat-item">
