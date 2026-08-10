@@ -16,8 +16,8 @@ export interface StreetDataPoint {
 }
 
 const PLAYER_COLORS = [
-  '#10b981', // Hero: Emerald
-  '#38bdf8', // Bot 1: Sky
+  '#10b981', // Hero: Bright Emerald Green
+  '#38bdf8', // Bot 1: Sky Blue
   '#f59e0b', // Bot 2: Amber
   '#ec4899', // Bot 3: Pink
   '#a855f7', // Bot 4: Purple
@@ -191,16 +191,26 @@ export const EquityGraph: React.FC<EquityGraphProps> = ({ state }) => {
     }
   });
 
+  // Sort paths so Hero (isHero === true) is drawn LAST (on top of all bot lines)
+  playerPaths.sort((a, b) => (a.isHero ? 1 : b.isHero ? -1 : a.playerId - b.playerId));
+
   return (
     <div className="equity-graph-container">
       <div className="equity-graph-header">
         <span className="section-label">📈 Win Probability Progression Graph</span>
-        <span className="section-sub-label">(Lines terminate when a player folds)</span>
+        <span className="section-sub-label">(Bold green line = You. Lines terminate when folded)</span>
       </div>
 
       {/* SVG Line Chart */}
       <div className="svg-wrapper">
         <svg viewBox={`0 0 ${width} ${height}`} className="equity-svg">
+          <defs>
+            <filter id="heroGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
           {/* Y Axis Grid lines */}
           {[0, 25, 50, 75, 100].map((val) => {
             const y = getY(val);
@@ -242,39 +252,28 @@ export const EquityGraph: React.FC<EquityGraphProps> = ({ state }) => {
             </text>
           ))}
 
-          {/* Player Lines */}
+          {/* Player Lines (Cleaned: % labels removed, Hero drawn on top) */}
           {playerPaths.map((pPath) => (
-            <g key={pPath.playerId}>
+            <g key={pPath.playerId} filter={pPath.isHero ? 'url(#heroGlow)' : undefined}>
               <path
                 d={pPath.pathD}
                 fill="none"
                 stroke={pPath.color}
-                strokeWidth={pPath.isHero ? '3' : '1.8'}
-                strokeOpacity={pPath.isHero ? '1' : '0.75'}
+                strokeWidth={pPath.isHero ? '4' : '1.8'}
+                strokeOpacity={pPath.isHero ? '1' : '0.65'}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
               {pPath.points.map((pt, idx) => (
-                <g key={idx}>
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={pPath.isHero ? '4' : '3'}
-                    fill={pPath.color}
-                    stroke="#0f172a"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={pt.x}
-                    y={pt.y - 7}
-                    fill={pPath.color}
-                    fontSize="9"
-                    fontWeight="800"
-                    textAnchor="middle"
-                  >
-                    {pt.pct}%
-                  </text>
-                </g>
+                <circle
+                  key={idx}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={pPath.isHero ? '5' : '3'}
+                  fill={pPath.color}
+                  stroke={pPath.isHero ? '#ffffff' : '#0f172a'}
+                  strokeWidth={pPath.isHero ? '2' : '1.5'}
+                />
               ))}
             </g>
           ))}
@@ -289,7 +288,7 @@ export const EquityGraph: React.FC<EquityGraphProps> = ({ state }) => {
           const label = isHero ? 'You (Hero)' : `Bot ${p.id}`;
 
           return (
-            <div key={p.id} className={`legend-pill ${p.folded ? 'folded' : ''}`}>
+            <div key={p.id} className={`legend-pill ${p.folded ? 'folded' : ''} ${isHero ? 'hero-legend' : ''}`}>
               <span className="legend-dot" style={{ background: color }} />
               <span className="legend-name">{label}</span>
               {p.folded && <span className="legend-folded-tag">(Folded)</span>}

@@ -1030,6 +1030,12 @@ html, body {
   opacity: 0.55;
 }
 
+.legend-pill.hero-legend {
+  border-color: var(--emerald);
+  background: rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
 .legend-dot {
   width: 8px;
   height: 8px;
