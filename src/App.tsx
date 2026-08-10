@@ -257,6 +257,9 @@ export default function App() {
           {heroTurn && analysis && (
             <PeekStrip
               realizedEquity={analysis.realizedEquity}
+              rawEquity={analysis.rawEquity}
+              realizationFactor={analysis.realizationFactor}
+              breakEvenOdds={analysis.potOdds.required}
               bestLineLabel={bestLineLabel}
               onOpenSheet={() => handleSnapChange(snapMemory === 'peek' ? 'half' : snapMemory)}
             />
