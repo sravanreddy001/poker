@@ -71,12 +71,19 @@ export function evaluateSizes(
   const minTarget = input.toCall > 0 ? input.toCall * 2 : input.bigBlind;
 
   const options: EvOption[] = SIZES.map((size) => {
-    const amount =
-      size.fraction === 0
-        ? 0
-        : size.fraction === Infinity
-          ? input.stack
-          : Math.min(input.stack, Math.max(minTarget, Math.round(input.pot * size.fraction)));
+    let amount = 0;
+    if (size.fraction === 0) {
+      amount = 0;
+    } else if (size.fraction === Infinity) {
+      // Preflop deep stacks: cap over-shoving to 4x pot / 3-bet size so candidates remain realistic
+      if (street === 'preflop' && input.toCall <= 3 * input.bigBlind && input.stack > 25 * input.bigBlind) {
+        amount = Math.min(input.stack, Math.max(minTarget, Math.round(input.pot * 3)));
+      } else {
+        amount = input.stack;
+      }
+    } else {
+      amount = Math.min(input.stack, Math.max(minTarget, Math.round(input.pot * size.fraction)));
+    }
 
     if (amount === 0) {
       // Checking keeps our share of the current pot; folding to a live bet
