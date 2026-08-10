@@ -30,8 +30,8 @@ export const TerminologyModal: React.FC<TerminologyModalProps> = ({ isOpen, onCl
       desc: 'If all remaining community cards were dealt right now with NO further betting allowed, this is how often your cards would win the pot at showdown (e.g. 58% = winning 58 out of 100 card runouts).',
     },
     {
-      title: 'Playable Win Odds (Realized Equity)',
-      desc: 'Your realistic chance of actually winning the pot when factoring in future betting rounds. Out of position or with draws, aggressive opponent bets will sometimes force you to fold before reaching showdown.',
+      title: 'Playable Win Odds (Realized Equity) & Equity Tiers',
+      desc: 'Your realistic chance of winning the pot when factoring in future betting rounds. Benchmark Tiers:\n• 🔴 Weak Equity (< 35%): Unimproved high cards or weak pairs out of position. Requires cheap pot odds or folding.\n• 🟡 Medium Equity (35% – 55%): Coin-flip hands, middle pair, or strong draws. Calling is +EV when equity exceeds required pot odds.\n• 🟢 Strong Equity (55%+): Dominant top pairs, sets, straights, and flushes. Primary range for value betting and raising.',
     },
     {
       title: 'Position Retention (Realization Factor)',
@@ -39,7 +39,7 @@ export const TerminologyModal: React.FC<TerminologyModalProps> = ({ isOpen, onCl
     },
     {
       title: 'Break-Even Call Odds (Pot Odds)',
-      desc: 'The ratio of the call price to the total pot size. Tells you the minimum win rate required to make calling profitable long-term.',
+      desc: 'The ratio of the call price to the total pot size. Formula: Call ÷ (Pot + Call). Tells you the minimum win rate required to make calling profitable long-term.',
     },
     {
       title: 'Action Expected Profit ($ EV)',
@@ -73,7 +73,7 @@ export const TerminologyModal: React.FC<TerminologyModalProps> = ({ isOpen, onCl
           {terms.map((t, idx) => (
             <div key={idx} className="glossary-item">
               <div className="glossary-term-title">{t.title}</div>
-              <div className="glossary-term-desc">{t.desc}</div>
+              <div className="glossary-term-desc" style={{ whiteSpace: 'pre-line' }}>{t.desc}</div>
             </div>
           ))}
         </div>

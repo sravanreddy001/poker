@@ -30,7 +30,7 @@ export const DEFINITIONS = {
   rawEquity:
     'Showdown Win Odds (Raw Equity): If all remaining community cards were dealt right now with NO further betting, this is how often your cards would win the pot at showdown (e.g. winning 58 out of 100 card runouts = 58%).',
   realizedEquity:
-    'Playable Win Odds (Realized Equity): Your realistic chance of actually winning the pot when factoring in future betting rounds. Out of position or with draws, aggressive opponent bets will sometimes force you to fold before reaching showdown.',
+    'Playable Win Odds (Realized Equity): Your realistic chance of winning the pot when factoring in future betting. Benchmark Tiers: 🔴 Weak (< 35%), 🟡 Medium (35%-55%), 🟢 Strong (55%+). An action is profitable when Playable Equity exceeds Required Pot Odds.',
   realizationFactor:
     'Position Retention (Realization Factor): Realized Equity ÷ Raw Equity. Measures what percentage of your raw card strength you actually get to claim based on table position and opponent betting.',
   potOdds:
