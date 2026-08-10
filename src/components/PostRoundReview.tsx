@@ -1,5 +1,7 @@
 import React from 'react';
+import type { Player } from '../engine/game';
 import { money } from '../analysis';
+import { CardView } from './CardView';
 
 export interface ReviewRecord {
   street: string;
@@ -12,18 +14,24 @@ export interface ReviewRecord {
 
 interface PostRoundReviewProps {
   decisions: ReviewRecord[];
+  players: Player[];
   heroWon: boolean;
   onReplay: () => void;
   onNextHand: () => void;
   seed: number;
+  revealAllHands: boolean;
+  onToggleRevealAllHands: () => void;
 }
 
 export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
   decisions,
+  players,
   heroWon,
   onReplay,
   onNextHand,
   seed,
+  revealAllHands,
+  onToggleRevealAllHands,
 }) => {
   const totalEvLost = decisions.reduce((acc, d) => acc + d.evLost, 0);
   const isDecisionGood = totalEvLost < 0.1;
@@ -79,6 +87,43 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
               {outcomeType === 'CONSEQUENCE' && `Sub-optimal play left ${money(totalEvLost)} in extra profit on the table compared to the optimal move.`}
               {outcomeType === 'CLEAN_WIN' && 'Optimal play (+EV) and a winning result!'}
             </span>
+          </div>
+        </div>
+
+        {/* Showdown Player Hole Cards Section */}
+        <div className="showdown-hands-section">
+          <div className="showdown-header">
+            <span className="section-label">🎴 Showdown Player Cards</span>
+            <button
+              type="button"
+              className="toggle-hands-btn"
+              onClick={onToggleRevealAllHands}
+            >
+              {revealAllHands ? '🙈 Hide Folded Cards' : '👁️ Reveal All Opponent Cards'}
+            </button>
+          </div>
+
+          <div className="showdown-cards-grid">
+            {players.map((p) => {
+              const isHero = p.id === 0;
+              const labelName = isHero ? 'You (Hero)' : `Bot ${p.id}`;
+              const isFolded = p.folded;
+
+              return (
+                <div key={p.id} className={`showdown-player-card ${isFolded ? 'folded' : ''}`}>
+                  <div className="showdown-player-name">
+                    <span>{labelName}</span>
+                    <span className="showdown-player-status">
+                      {isFolded ? '(Folded)' : money(p.stack)}
+                    </span>
+                  </div>
+                  <div className="showdown-player-hole">
+                    <CardView card={p.hole?.[0]} hidden={!isHero && !revealAllHands && isFolded} />
+                    <CardView card={p.hole?.[1]} hidden={!isHero && !revealAllHands && isFolded} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

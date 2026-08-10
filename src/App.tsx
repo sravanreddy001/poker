@@ -59,9 +59,10 @@ export default function App() {
   const [snapMemory, setSnapMemory] = useState<SnapPoint>('peek');
   const [activeTab, setActiveTab] = useState<'equity' | 'lines' | 'villain'>('equity');
 
-  // Modal states
+  // Modal & Reveal states
   const [showTerminology, setShowTerminology] = useState(false);
   const [showHandRankings, setShowHandRankings] = useState(false);
+  const [revealAllHands, setRevealAllHands] = useState(false);
 
   const hero = state.players[0];
   const heroTurn = !state.complete && state.toAct === 0 && !hero.folded;
@@ -234,7 +235,7 @@ export default function App() {
         <main className="main-layout">
           {/* Table Zone (Flex: 1) */}
           <section className="table-zone">
-            <PokerTable state={state} btnSeat={0} />
+            <PokerTable state={state} btnSeat={0} revealAllHands={revealAllHands} />
           </section>
 
           {/* Peek Strip (Above Action Bar) */}
@@ -317,10 +318,13 @@ export default function App() {
         {state.complete && (
           <PostRoundReview
             decisions={decisions as ReviewRecord[]}
+            players={state.players}
             heroWon={heroWon}
             onReplay={replayHand}
             onNextHand={nextHand}
             seed={seed}
+            revealAllHands={revealAllHands}
+            onToggleRevealAllHands={() => setRevealAllHands((r) => !r)}
           />
         )}
       </div>

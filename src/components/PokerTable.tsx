@@ -8,9 +8,14 @@ import { CardView } from './CardView';
 export interface PokerTableProps {
   state: HandState;
   btnSeat?: number;
+  revealAllHands?: boolean;
 }
 
-export const PokerTable: React.FC<PokerTableProps> = ({ state, btnSeat = 0 }) => {
+export const PokerTable: React.FC<PokerTableProps> = ({
+  state,
+  btnSeat = 0,
+  revealAllHands = false,
+}) => {
   const btnCoord = getBtnCoord(btnSeat, state.players.length);
 
   return (
@@ -26,6 +31,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({ state, btnSeat = 0 }) =>
               isCurrentToAct={state.toAct === p.id}
               isComplete={state.complete}
               isWinner={state.winners.includes(p.id)}
+              revealAllHands={revealAllHands}
             />
           ))}
         </div>
