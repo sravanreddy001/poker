@@ -47,7 +47,7 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
       if (worstDecision.chosen === 'call') {
         leakTag = 'Unprofitable Call with Draw Out of Position';
         leakExplanation =
-          'You paid to call a bet with an incomplete drawing hand while acting first (out of position). Future opponent bets will force you to fold before seeing the river, making this call a long-term loss.';
+          'You called with an incomplete drawing hand (e.g. 4 cards to a flush) while acting first (Out of Position). Acting first is a major disadvantage: your opponent can bet again on future streets and force you to fold before your draw completes, making this call unprofitable.';
       } else if (worstDecision.chosen === 'fold') {
         leakTag = 'Folded a Profitable Hand to Opponent Bet';
         leakExplanation =
