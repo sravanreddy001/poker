@@ -11,6 +11,8 @@ import { EVBarChart } from './components/EVBarChart';
 import { RangeHeatmap } from './components/RangeHeatmap';
 import { BottomSheet, SnapPoint } from './components/BottomSheet';
 import { PostRoundReview, ReviewRecord } from './components/PostRoundReview';
+import { TerminologyModal } from './components/TerminologyModal';
+import { HandRankingsModal } from './components/HandRankingsModal';
 
 const OPTS = { players: 6, stack: 100, bigBlind: 1 };
 const STORAGE_KEY = 'poker-trainer-session';
@@ -56,6 +58,10 @@ export default function App() {
   const [snap, setSnap] = useState<SnapPoint>('peek');
   const [snapMemory, setSnapMemory] = useState<SnapPoint>('peek');
   const [activeTab, setActiveTab] = useState<'equity' | 'lines' | 'villain'>('equity');
+
+  // Modal states
+  const [showTerminology, setShowTerminology] = useState(false);
+  const [showHandRankings, setShowHandRankings] = useState(false);
 
   const hero = state.players[0];
   const heroTurn = !state.complete && state.toAct === 0 && !hero.folded;
@@ -202,6 +208,26 @@ export default function App() {
           <div className="stat-item">
             EV Lost <b>{money(stats.evLost)}</b>
           </div>
+          <div className="header-icon-group">
+            <button
+              type="button"
+              className="header-icon-btn"
+              onClick={() => setShowTerminology(true)}
+              title="Terminology Glossary (?)"
+              aria-label="Open Terminology Glossary"
+            >
+              ❓
+            </button>
+            <button
+              type="button"
+              className="header-icon-btn"
+              onClick={() => setShowHandRankings(true)}
+              title="Hand Rankings Ladder & Odds (🪜)"
+              aria-label="Open Hand Rankings Ladder"
+            >
+              🪜
+            </button>
+          </div>
         </header>
 
         {/* 2. Main Table & Action Layout */}
@@ -274,6 +300,18 @@ export default function App() {
             </BottomSheet>
           )}
         </main>
+
+        {/* Terminology Glossary Modal */}
+        <TerminologyModal
+          isOpen={showTerminology}
+          onClose={() => setShowTerminology(false)}
+        />
+
+        {/* Hand Rankings Ladder Modal */}
+        <HandRankingsModal
+          isOpen={showHandRankings}
+          onClose={() => setShowHandRankings(false)}
+        />
 
         {/* Post-Round Feedback Modal Overlay */}
         {state.complete && (
