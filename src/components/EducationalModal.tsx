@@ -10,6 +10,10 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onCl
 
   const guides = [
     {
+      title: '🎲 How the Engine Calculates Playable Odds (Monte Carlo Engine)',
+      desc: 'Behind the scenes, Playable Odds (Realized Equity) are calculated in 3 steps:\n1. Raw Equity Runouts: The engine runs 2,000 random card deals comparing your hand against opponent\'s estimated starting range to find your pure showdown win % (e.g. 45% Raw Equity).\n2. Postflop Decision Simulation: The engine runs 400 full postflop hand playouts. In each playout, board cards are dealt and the GTO bot engine simulates opponent bets. If opponent bets aggressively out of position, your hand evaluates whether to call or fold early.\n3. Realized Winnings Formula: Playable Odds % = (Net Chips Collected Across All 400 Playouts ÷ Initial Pot). If you fold early in 60 out of 400 playouts, your 45% Raw Equity realizes down to 38% Playable Odds!',
+    },
+    {
       title: '🧮 Playable Odds Math Terminology Breakdown (Plain English)',
       desc: '• 1. Raw Showdown Equity (%): Your pure card strength if all board cards were dealt right now with NO future betting.\n• 2. Position Retention Factor (%): In real poker, future bets happen. Acting in position (BTN) lets you claim ~100% of your raw equity. Acting out of position (SB/UTG) forces you to fold early ~15%–20% of the time before seeing the river.\n• 3. Playable Odds Formula: Raw Equity % × Position Retention % = Playable Odds %.\n  (Example: 45% Raw Equity × 85% Retention = 38% Playable Odds).\n• 4. Break-Even Call Odds (Pot Odds %): Call Price ÷ (Total Pot + Call Price). Minimum win rate required to make calling break-even.\n• 5. Profit Margin (+EV): When your Playable Odds (38%) exceed Break-Even Call Odds (15%), calling makes long-term dollar profit (+23% +EV)!',
     },
