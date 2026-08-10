@@ -1,4 +1,4 @@
-import { Card, rankOf, suitOf, RANKS } from './engine/cards';
+import { Card, rankOf, suitOf } from './engine/cards';
 import { equityVsRange, countOuts } from './engine/equity';
 import { realizedEquity } from './engine/realization';
 import { evaluateSizes, potOddsVerdict, EvOption } from './engine/ev';
@@ -49,11 +49,13 @@ export const DEFINITIONS = {
     'Community Cards (The Board): The 5 shared cards dealt face-up in the center of the table across 3 rounds — Flop (3 cards), Turn (1 card), and River (1 card). All players combine these with their 2 private hole cards to make their best 5-card poker hand.',
 };
 
+const DISPLAY_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
 /** Suit indices are c,d,h,s — diamonds and hearts render red. */
 export function cardLabel(c: Card): { rank: string; suit: string; red: boolean } {
   const suit = suitOf(c);
   return {
-    rank: RANKS[rankOf(c)],
+    rank: DISPLAY_RANKS[rankOf(c)],
     suit: ['♣', '♦', '♥', '♠'][suit],
     red: suit === 1 || suit === 2,
   };
