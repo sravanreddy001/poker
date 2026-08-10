@@ -55,11 +55,12 @@ export const RangeHeatmap: React.FC<RangeHeatmapProps> = ({ rangePct, comboCount
       {/* Educational Definition Card */}
       <div className="learning-card">
         <div className="learning-card-header">
-          <span>🔍 Definition: Opponent Starting Range</span>
+          <span>🔍 Shorthand Notation Guide: Suited (s) vs Offsuit (o)</span>
         </div>
         <div className="learning-card-body">
-          <b>Villain Range</b> represents the starting hand combinations your opponent is likely playing.<br />
-          Highlighted hands show the <b>top {Math.round(rangePct * 100)}%</b> of hands (<b>{calculatedCombos} combinations</b> out of 1,326 total hands).
+          <b>AKs (Suited)</b>: Ace-King of the <b>same suit</b> (e.g. A♠ K♠). 4 combos total.<br />
+          <b>AKo (Offsuit)</b>: Ace-King of <b>different suits</b> (e.g. A♠ K♥). 12 combos total.<br />
+          Top-Right cells (<b>s</b>) = Suited | Bottom-Left cells (<b>o</b>) = Offsuit | Diagonal = Pairs.
         </div>
       </div>
     </div>
