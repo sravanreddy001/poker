@@ -27,15 +27,24 @@ export interface HeroAnalysis {
 }
 
 export const DEFINITIONS = {
-  rawEquity: 'Showdown Win Odds (Raw Equity): Your chance of holding the best 5-card hand at showdown if no further bets are placed.',
-  realizedEquity: 'Playable Win Odds (Realized Equity): Your actual win chance when accounting for future betting rounds and folding out of position.',
-  realizationFactor: 'Position Retention (Realization Factor): The percentage of your showdown odds retained vs surrendered to table position and opponent betting.',
-  potOdds: 'Break-Even Call Odds (Pot Odds): The minimum win percentage required for a call to break even long-term.',
-  ev: 'Expected Value ($ EV): The average profit or loss of an action over many hands.',
-  outs: 'Winning Cards (Outs): Cards remaining in the deck that improve your hand to a winner.',
-  ruleOf42: 'Rule of 4/2 Shortcut: Multiply outs by 4 on the Flop (2 cards to come) or 2 on the Turn (1 card to come) to estimate your win percentage.',
-  spr: 'Stack-to-Pot Ratio (SPR): Your remaining stack divided by the pot size.',
-  villainRange: 'Opponent Opening Range: The set of 13×13 starting hand combinations your opponent is likely playing.',
+  rawEquity:
+    'Showdown Win Odds (Raw Equity): If all remaining community cards were dealt right now with NO further betting, this is how often your cards would win the pot at showdown (e.g. winning 58 out of 100 card runouts = 58%).',
+  realizedEquity:
+    'Playable Win Odds (Realized Equity): Your realistic chance of actually winning the pot when factoring in future betting rounds. Out of position or with draws, aggressive opponent bets will sometimes force you to fold before reaching showdown.',
+  realizationFactor:
+    'Position Retention (Realization Factor): Realized Equity ÷ Raw Equity. Measures what percentage of your raw card strength you actually get to claim based on table position and opponent betting.',
+  potOdds:
+    'Break-Even Call Odds (Pot Odds): The ratio of the call price to the total pot. Tells you the minimum win rate required to make calling profitable long-term.',
+  ev:
+    'Expected Value ($ EV): The average dollar profit or loss of an action calculated over thousands of identical poker hands.',
+  outs:
+    'Winning Cards (Outs): The specific unseen cards remaining in the deck that will improve your current hand into the best hand.',
+  ruleOf42:
+    'Rule of 4/2 Math Shortcut: Multiply your count of winning cards (outs) by 4 on the Flop (2 cards remaining) or by 2 on the Turn (1 card remaining) to quickly estimate your win percentage in your head.',
+  spr:
+    'Stack-to-Pot Ratio (SPR): Your remaining chip stack divided by the current pot size. High SPR means deep stacks (careful play); low SPR means committed stacks.',
+  villainRange:
+    'Opponent Opening Range: The full 13×13 grid of starting hand combinations your opponent is estimated to play based on their position.',
 };
 
 /** Suit indices are c,d,h,s — diamonds and hearts render red. */
