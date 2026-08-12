@@ -1936,3 +1936,59 @@ html, body {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
+
+/* One docked panel instead of a bubble hanging off each chip. Anchored to the
+   bottom of the table zone and offset clear of the hero seat, so the hole cards
+   stay readable whichever chip was tapped. */
+.coach-chip-popover-docked {
+  position: absolute;
+  top: auto;
+  bottom: 6px;
+  right: 6px;
+  left: auto;
+  /* Narrow enough that its left edge clears the hero's right hole card, which
+     ends about 250px into the 420px frame. */
+  width: 148px;
+  max-width: calc(100% - 12px);
+  padding: 10px 11px;
+  font-size: 10.5px;
+  transform: none;
+  margin: 0;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.coach-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.coach-popover-anchor {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.coach-popover-close {
+  margin-left: auto;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.coach-popover-close:hover {
+  color: var(--text-main);
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { HeroAnalysis } from '../analysis';
 import { pct, money } from '../analysis';
 import { CoachChip } from './CoachChip';
@@ -23,6 +23,31 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
   toCall,
 }) => {
   const [openPopover, setOpenPopover] = useState<Anchor | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Dismissal lives here rather than in the chip, since the panel is no longer a
+  // child of the chip that opened it.
+  useEffect(() => {
+    if (!openPopover) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (popoverRef.current?.contains(target)) return;
+      // A click on any chip is that chip's own toggle; let it through.
+      if (target.closest?.('.coach-chip')) return;
+      setOpenPopover(null);
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenPopover(null);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openPopover]);
 
   if (!analysis || coachDensity === 'off') {
     return null;
@@ -307,13 +332,34 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               hue={chipHues[anchor]}
               state={content.state}
               onOpenPopover={() => setOpenPopover(openPopover === anchor ? null : anchor)}
-              popoverContent={content.popover}
               isPopoverOpen={openPopover === anchor}
-              onPopoverClose={() => setOpenPopover(null)}
             />
           </div>
         );
       })}
+
+      {openPopover && (
+        <div
+          ref={popoverRef}
+          className="coach-chip-popover coach-chip-popover-docked"
+          role="dialog"
+          aria-label={`${openPopover} details`}
+        >
+          <div className="coach-popover-head">
+            <span className="coach-popover-anchor" style={{ background: chipHues[openPopover] }} />
+            {openPopover}
+            <button
+              type="button"
+              className="coach-popover-close"
+              onClick={() => setOpenPopover(null)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+          {getChipContent(openPopover).popover}
+        </div>
+      )}
     </div>
   );
 };
