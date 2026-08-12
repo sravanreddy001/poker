@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { startHand, applyAction, stepBots, HandState } from './engine/game';
 import type { Action } from './engine/types';
 import { analyseSpot, money, HeroAnalysis, VILLAIN_RANGE_PCT, getOptimalActionRationale } from './analysis';
+import { matchActionToCandidate } from './evScoring';
+import { handResult } from './sessionUtils';
 import { PokerTable } from './components/PokerTable';
 import { ActionBar } from './components/ActionBar';
 import { PeekStrip } from './components/PeekStrip';
@@ -52,6 +54,7 @@ export default function App() {
   const [btnSeat, setBtnSeat] = useState(0);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const [state, setState] = useState<HandState>(() => stepBots(startHand(seed, OPTS, 0)));
+  const [heroStackAtHandStart, setHeroStackAtHandStart] = useState(OPTS.stack); // All players start with OPTS.stack
   const [decisions, setDecisions] = useState<DecisionRecord[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<DecisionRecord | null>(null);
@@ -123,14 +126,18 @@ export default function App() {
   const act = useCallback(
     (action: Action) => {
       if (!analysis) return;
-      const label =
-        action.type === 'bet' || action.type === 'raise'
-          ? `${action.type} ${action.amount}`
-          : action.type;
 
-      const userOpt = allCandidates.find((c) => c.label.toLowerCase() === label.toLowerCase());
+      const hero = state.players[0];
+      const userOpt = matchActionToCandidate(
+        action.type as 'fold' | 'check' | 'call' | 'bet' | 'raise',
+        action.type === 'bet' || action.type === 'raise' ? action.amount : undefined,
+        allCandidates,
+        hero.stack,
+        hero.committed,
+      );
+
       const topBest = allCandidates[0] ?? { label: 'check', ev: 0 };
-      const userEv = userOpt ? userOpt.ev : -10;
+      const userEv = userOpt?.ev ?? 0;
       const rawEvLost = Math.max(0, topBest.ev - userEv);
       const evLost = rawEvLost < 0.1 ? 0 : rawEvLost;
 
@@ -149,7 +156,7 @@ export default function App() {
         street: state.street,
         rawEquity: analysis.rawEquity,
         realizedEquity: analysis.realizedEquity,
-        chosen: label,
+        chosen: userOpt ? userOpt.label : (action.type === 'bet' || action.type === 'raise' ? `${action.type} ${action.amount}` : action.type),
         best: topBest.label,
         evLost,
         rationale,
@@ -171,9 +178,8 @@ export default function App() {
   );
 
   const nextHand = useCallback(() => {
-    const currentStacks = state.players.map((p) => (p.stack < 10 ? 100 : p.stack));
-    const heroStartStack = currentStacks[0];
-    const won = hero.stack - heroStartStack;
+    // Compute the win for the CURRENT hand using the hero's stack from the START of this hand.
+    const won = handResult(heroStackAtHandStart, hero.stack);
     const evLost = decisions.reduce((n, d) => n + d.evLost, 0);
 
     setStats((st) => ({
@@ -184,18 +190,23 @@ export default function App() {
       reveals: st.reveals,
     }));
 
+    // For the NEXT hand, apply top-up rule to determine start stacks.
+    const nextHandStartStacks = state.players.map((p) => (p.stack < 10 ? 100 : p.stack));
+    const nextHeroStartStack = nextHandStartStacks[0];
+
     const nextBtn = (btnSeat + 1) % OPTS.players;
     setBtnSeat(nextBtn);
     const next = seed + 1;
     setSeed(next);
-    setState(stepBots(startHand(next, OPTS, nextBtn, currentStacks)));
+    setState(stepBots(startHand(next, OPTS, nextBtn, nextHandStartStacks)));
+    setHeroStackAtHandStart(nextHeroStartStack);
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
     setShowReviewModal(false);
     setSnap('peek');
     setSnapMemory('peek');
-  }, [btnSeat, decisions, hero.stack, seed, state.players]);
+  }, [btnSeat, decisions, hero.stack, seed, state.players, heroStackAtHandStart]);
 
   const replayHand = useCallback(() => {
     const currentStacks = state.players.map((p) => p.stack);
@@ -216,6 +227,7 @@ export default function App() {
     setSeed(nextSeed);
     setBtnSeat(0);
     setState(stepBots(startHand(nextSeed, OPTS, 0)));
+    setHeroStackAtHandStart(OPTS.stack);
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
