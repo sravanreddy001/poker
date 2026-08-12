@@ -1666,10 +1666,12 @@ html, body {
   left: 16px;
 }
 
+/* Left mid, not bottom centre: the hero seat owns the bottom centre, and a chip
+   parked there covered a hole card outright. */
 .coach-chip-pot {
-  top: 68%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
 }
 
 .coach-chip-villain {
