@@ -1,8 +1,8 @@
 import { Card, rankOf, suitOf } from './engine/cards';
 import { equityVsRange, countOuts } from './engine/equity';
 import { realizedEquity } from './engine/realization';
-import { evaluateSizes, potOddsVerdict, EvOption } from './engine/ev';
-import { rangeTopPercent, Combo } from './engine/ranges';
+import { evaluateSizes, potOddsVerdict, EvOption, bluffPrice, minDefenseFrequency, commitmentTier } from './engine/ev';
+import { rangeTopPercent, Combo, tierOf, HandTier } from './engine/ranges';
 import { makeRng } from './engine/rng';
 import { DEFAULT_BOT } from './engine/bot';
 import type { HandState } from './engine/game';
@@ -24,6 +24,10 @@ export interface HeroAnalysis {
   advice: EvOption[];
   spr: number;
   bluffFreq: number;
+  bluffPriceAtPot: number;
+  mdfFacing: number;
+  commitment: { tier: 'committed' | 'shallow' | 'medium' | 'deep'; label: string; note: string };
+  preflopTier: { tier: HandTier; label: string; topPct: number } | null;
 }
 
 export const DEFINITIONS = {
@@ -193,6 +197,14 @@ export function analyseSpot(s: HandState): HeroAnalysis {
 
   const advice = evaluateSizes({ ...input, toCall }, rng);
 
+  // Coach chips data
+  const bluffPriceAtPot = bluffPrice(s.pot * 0.75, s.pot); // 3/4 pot is default semi-bluff size
+  const mdfFacing = minDefenseFrequency(toCall, s.pot);
+  const commitment = commitmentTier(s.pot > 0 ? hero.stack / s.pot : 0);
+
+  // Preflop tier only when board is empty
+  const preflopTier = s.board.length === 0 ? tierOf(hole) : null;
+
   return {
     rawEquity: raw.equity,
     realizedEquity: realization.realized,
@@ -206,6 +218,10 @@ export function analyseSpot(s: HandState): HeroAnalysis {
     advice,
     spr: s.pot > 0 ? hero.stack / s.pot : 0,
     bluffFreq: DEFAULT_BOT.bluffFreq[streetOf(s.board.length)],
+    bluffPriceAtPot,
+    mdfFacing,
+    commitment,
+    preflopTier,
   };
 }
 

@@ -24,15 +24,17 @@ interface SessionStats {
   actual: number;
   expected: number;
   reveals: number;
+  coachDensity?: 'full' | 'focus' | 'off';
 }
 
 function loadStats(): SessionStats {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0 };
-    return JSON.parse(raw);
+    if (!raw) return { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0, coachDensity: 'full' };
+    const parsed = JSON.parse(raw);
+    return { ...parsed, coachDensity: parsed.coachDensity || 'full' };
   } catch {
-    return { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0 };
+    return { hands: 0, evLost: 0, actual: 0, expected: 0, reveals: 0, coachDensity: 'full' };
   }
 }
 
@@ -65,6 +67,12 @@ export default function App() {
   const [showTerminology, setShowTerminology] = useState(false);
   const [showHandRankings, setShowHandRankings] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+
+  const coachDensity = (stats.coachDensity || 'full') as 'full' | 'focus' | 'off';
+  const toggleCoachDensity = useCallback(() => {
+    const next = coachDensity === 'full' ? 'focus' : coachDensity === 'focus' ? 'off' : 'full';
+    setStats((st) => ({ ...st, coachDensity: next }));
+  }, [coachDensity]);
 
   const hero = state.players[0];
   const heroTurn = !state.complete && state.toAct === 0 && !hero.folded;
@@ -228,15 +236,34 @@ export default function App() {
             Hands <b>{stats.hands}</b>
           </div>
           <div className="stat-item" title="Net chip profit or loss across session">
-            Net <b>{money(stats.actual, { sign: true })}</b>
+            Net <b style={{ color: stats.actual > 0 ? 'var(--emerald)' : stats.actual < 0 ? 'var(--coral)' : 'var(--text-main)' }}>
+              {money(stats.actual, { sign: true })}
+            </b>
+          </div>
+          <div
+            className="stat-item"
+            title="What your decisions were worth, before luck. Net is what actually landed in your stack. The gap between the two is variance — over a long session it shrinks toward zero, so EV-Adjusted is the honest scoreboard."
+          >
+            EV-Adjusted <b style={{ color: stats.expected > 0 ? 'var(--emerald)' : stats.expected < 0 ? 'var(--coral)' : 'var(--text-main)' }}>
+              {stats.hands === 0 ? '—' : money(stats.expected, { sign: true })}
+            </b>
           </div>
           <div
             className="stat-item"
             title="Cumulative dollar EV surrendered across all hands in this session (increases whenever a sub-optimal move is made)"
           >
-            Session EV Lost <b>{money(stats.evLost)}</b>
+            EV Lost <b>{money(stats.evLost)}</b>
           </div>
           <div className="header-icon-group">
+            <button
+              type="button"
+              className="header-icon-btn"
+              onClick={toggleCoachDensity}
+              title={`Coach Chips: ${coachDensity.toUpperCase()} (💎)`}
+              aria-label="Toggle Coach Chips density"
+            >
+              💎
+            </button>
             <button
               type="button"
               className="header-icon-btn"
@@ -280,7 +307,7 @@ export default function App() {
         <main className="main-layout">
           {/* Table Zone (Flex: 1) */}
           <section className="table-zone">
-            <PokerTable state={state} />
+            <PokerTable state={state} analysis={analysis} coachDensity={coachDensity} />
           </section>
 
           {/* Peek Strip (Above Action Bar) */}

@@ -24,13 +24,12 @@ export const OutsStrip: React.FC<OutsStripProps> = ({
   return (
     <div className="outs-strip-container">
       <div className="outs-strip-header">
-        <span className="outs-title" title={DEFINITIONS.outs}>
-          Winning Cards ({outs.length} Outs)
-        </span>
-        <span className="outs-rule" title={DEFINITIONS.ruleOf42}>
+        <span className="outs-title" title={DEFINITIONS.ruleOf42}>
           Rule-of-{multiplier} ({streetName}): {outs.length} × {multiplier} ={' '}
-          <b>{ruleOfNEstimate !== null ? pct(ruleOfNEstimate) : '—'}</b> (Actual:{' '}
-          <b>{pct(rawEquity)}</b>)
+          <b>{ruleOfNEstimate !== null ? pct(ruleOfNEstimate) : '—'}</b>
+        </span>
+        <span className="outs-rule" title={DEFINITIONS.outs}>
+          Hand Strength ({outs.length} Outs) • Sim confirms {pct(rawEquity)}
         </span>
       </div>
 

@@ -1630,3 +1630,170 @@ html, body {
   margin-top: 4px;
 }
 
+/* Coach Chips Container - fills table-zone and layers over content */
+.coach-chips-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.coach-chip-slot {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* Chip slot positions: four corners of table-zone */
+.coach-chip-cards {
+  bottom: 16px;
+  left: 16px;
+}
+
+.coach-chip-pot {
+  top: 68%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.coach-chip-villain {
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.coach-chip-stack {
+  bottom: 16px;
+  right: 16px;
+}
+
+/* Coach Chip Button - expandable to accommodate text */
+.coach-chip-wrapper {
+  position: relative;
+}
+
+.coach-chip {
+  min-width: 60px;
+  min-height: 60px;
+  padding: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #000;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-clip: padding-box;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.coach-chip:hover {
+  transform: scale(1.08);
+  filter: brightness(1.1);
+}
+
+.coach-chip:active {
+  transform: scale(0.96);
+}
+
+.coach-chip-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
+  max-width: 50px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-size: 8.5px;
+}
+
+/* Popover Container */
+.coach-chip-popover {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(17, 28, 46, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--text-main);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  z-index: 8;
+  white-space: normal;
+  /* The chip is the containing block and is only ~60px wide, so shrink-to-fit
+     would collapse the popover to two words per line. Pin the width instead. */
+  width: 180px;
+  max-width: 180px;
+  line-height: 1.4;
+}
+
+.coach-chip-popover-right {
+  right: -10px;
+  margin-left: 8px;
+}
+
+.coach-chip-popover-left {
+  left: -10px;
+  margin-right: 8px;
+  transform: translateY(-50%);
+}
+
+.coach-popover-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coach-popover-line {
+  color: var(--text-main);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.coach-popover-text {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.coach-popover-table {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-style: italic;
+}
+
+/* Reframed OutsStrip - headline estimate, sim as secondary */
+.outs-strip-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outs-title {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.outs-rule {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.outs-rule b {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
