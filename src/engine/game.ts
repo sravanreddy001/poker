@@ -387,6 +387,36 @@ export function applyAction(state: HandState, action: Action): HandState {
   return { ...next, toAct: nextToAct(next, next.toAct) };
 }
 
+/**
+ * Resolve exactly one bot decision. The UI drives this on a timer so the table
+ * plays out seat by seat the way a live game does, instead of every opponent
+ * acting in the same frame. Returns the state unchanged when it is the hero's
+ * turn or the hand is over.
+ */
+export function stepBotOnce(state: HandState): HandState {
+  if (state.complete || state.players[state.toAct].isHuman) return state;
+
+  const p = state.players[state.toAct];
+  if (!canAct(p)) return { ...state, toAct: nextToAct(state, state.toAct) };
+
+  const action = botAct(
+    {
+      hole: p.hole as Combo,
+      board: state.board,
+      pot: state.pot,
+      toCall: Math.max(0, state.currentBet - p.committed),
+      stack: p.stack,
+      bigBlind: state.bigBlind,
+      street: state.street,
+      inPosition: state.toAct > 0,
+      villainRange: rangeTopPercent(0.3),
+    },
+    DEFAULT_BOT,
+    state.rng,
+  );
+  return applyAction(state, action);
+}
+
 export function stepBots(state: HandState): HandState {
   let s = state;
   let guard = 0;

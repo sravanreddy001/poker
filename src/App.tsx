@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { startHand, applyAction, stepBots, HandState } from './engine/game';
+import { startHand, applyAction, stepBotOnce, HandState } from './engine/game';
 import type { Action } from './engine/types';
 import { analyseSpot, money, HeroAnalysis, VILLAIN_RANGE_PCT, getOptimalActionRationale } from './analysis';
 import { matchActionToCandidate } from './evScoring';
@@ -20,6 +20,8 @@ import { EducationalModal } from './components/EducationalModal';
 
 const OPTS = { players: 6, stack: 100, bigBlind: 1 };
 const STORAGE_KEY = 'poker-trainer-session';
+/** Beat between opponent decisions. Long enough to read, short enough to not wait on. */
+const BOT_ACTION_MS = 850;
 
 interface SessionStats {
   hands: number;
@@ -56,11 +58,12 @@ export interface DecisionRecord {
 export default function App() {
   const [btnSeat, setBtnSeat] = useState(0);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
-  const [state, setState] = useState<HandState>(() => stepBots(startHand(seed, OPTS, 0)));
+  const [state, setState] = useState<HandState>(() => startHand(seed, OPTS, 0));
   const [heroStackAtHandStart, setHeroStackAtHandStart] = useState(OPTS.stack); // All players start with OPTS.stack
   // Stacks no longer top up between hands, so a session can actually end: either
   // the hero runs out of chips, or they take everyone else's.
   const [sessionOver, setSessionOver] = useState<null | 'busted' | 'swept'>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [decisions, setDecisions] = useState<DecisionRecord[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<DecisionRecord | null>(null);
@@ -178,10 +181,49 @@ export default function App() {
         setSnap('peek');
       }
 
-      setState((s) => stepBots(applyAction(s, action)));
+      setState((s) => applyAction(s, action));
     },
     [analysis, allCandidates, snapMemory, state.street, state.pot],
   );
+
+  // Fit the 420x880 frame into whatever window the player has, rather than
+  // letting a short laptop viewport crush the table into the cards.
+  useEffect(() => {
+    const fit = () => {
+      const scale = Math.min(1, window.innerWidth / 440, window.innerHeight / 900);
+      document.documentElement.style.setProperty('--frame-scale', String(scale));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
+
+  // Opponents act one seat at a time on a fixed beat, so the hand reads like a
+  // real table instead of resolving in a single frame. A seat that cannot act
+  // is skipped immediately — no dead pause for a player who already folded.
+  useEffect(() => {
+    if (state.complete || state.players[state.toAct].isHuman) return;
+    const p = state.players[state.toAct];
+    const canAct = !p.folded && !p.busted && p.stack > 0;
+    const timer = setTimeout(() => setState((s) => stepBotOnce(s)), canAct ? BOT_ACTION_MS : 0);
+    return () => clearTimeout(timer);
+  }, [state]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest?.('.header-menu-wrap')) setMenuOpen(false);
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [menuOpen]);
 
   const nextHand = useCallback(() => {
     // Compute the win for the CURRENT hand using the hero's stack from the START of this hand.
@@ -231,7 +273,7 @@ export default function App() {
     setBtnSeat(nextBtn);
     const next = seed + 1;
     setSeed(next);
-    setState(stepBots(startHand(next, OPTS, nextBtn, nextHandStartStacks)));
+    setState(startHand(next, OPTS, nextBtn, nextHandStartStacks));
     setHeroStackAtHandStart(nextHeroStartStack);
     setDecisions([]);
     setLastFeedback(null);
@@ -243,7 +285,7 @@ export default function App() {
 
   const replayHand = useCallback(() => {
     const currentStacks = state.players.map((p) => p.stack);
-    setState(stepBots(startHand(seed, OPTS, btnSeat, currentStacks)));
+    setState(startHand(seed, OPTS, btnSeat, currentStacks));
     setDecisions([]);
     setLastFeedback(null);
     setRevealed(false);
@@ -259,7 +301,7 @@ export default function App() {
     const nextSeed = Math.floor(Math.random() * 1e9);
     setSeed(nextSeed);
     setBtnSeat(0);
-    setState(stepBots(startHand(nextSeed, OPTS, 0)));
+    setState(startHand(nextSeed, OPTS, 0));
     setHeroStackAtHandStart(OPTS.stack);
     setSessionOver(null);
     setDecisions([]);
@@ -300,52 +342,44 @@ export default function App() {
           >
             EV Lost <b>{money(stats.evLost)}</b>
           </div>
-          <div className="header-icon-group">
+          {/* Five emoji buttons competed with the four numbers for the same
+              36px strip. One menu, with the actions named in words instead. */}
+          <div className="header-menu-wrap">
             <button
               type="button"
               className="header-icon-btn"
-              onClick={toggleCoachDensity}
-              title={`Coach Chips: ${coachDensity.toUpperCase()} (💎)`}
-              aria-label="Toggle Coach Chips density"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              aria-label="Menu"
+              title="Menu"
             >
-              💎
+              ☰
             </button>
-            <button
-              type="button"
-              className="header-icon-btn"
-              onClick={resetSession}
-              title="Reset Session Stats & Stacks (🔄)"
-              aria-label="Reset Session Stats & Stacks"
-            >
-              🔄
-            </button>
-            <button
-              type="button"
-              className="header-icon-btn"
-              onClick={() => setShowEducational(true)}
-              title="Informational & Strategy Guides (ℹ️)"
-              aria-label="Open Informational Strategy Guides"
-            >
-              ℹ️
-            </button>
-            <button
-              type="button"
-              className="header-icon-btn"
-              onClick={() => setShowTerminology(true)}
-              title="Pure Glossary & Vocabulary (?)"
-              aria-label="Open Terminology Glossary"
-            >
-              ❓
-            </button>
-            <button
-              type="button"
-              className="header-icon-btn"
-              onClick={() => setShowHandRankings(true)}
-              title="Hand Rankings Ladder & Odds (🪜)"
-              aria-label="Open Hand Rankings Ladder"
-            >
-              🪜
-            </button>
+            {menuOpen && (
+              <div className="header-menu" role="menu">
+                <button type="button" role="menuitem" onClick={toggleCoachDensity}>
+                  <span>Coach chips</span>
+                  <span className="header-menu-value">{coachDensity}</span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => { setShowEducational(true); setMenuOpen(false); }}>
+                  Strategy guides
+                </button>
+                <button type="button" role="menuitem" onClick={() => { setShowTerminology(true); setMenuOpen(false); }}>
+                  Glossary
+                </button>
+                <button type="button" role="menuitem" onClick={() => { setShowHandRankings(true); setMenuOpen(false); }}>
+                  Hand rankings
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="header-menu-danger"
+                  onClick={() => { resetSession(); setMenuOpen(false); }}
+                >
+                  Reset session
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
