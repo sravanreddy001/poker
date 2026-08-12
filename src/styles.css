@@ -1890,3 +1890,49 @@ html, body {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* Best Line stays covered until tapped, so the answer is not on screen while
+   the decision is still being made. */
+.peek-reveal {
+  padding: 1px 7px;
+  border: 1px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.peek-reveal:hover,
+.peek-reveal:focus-visible {
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* The three low chips sit level with the hero seat, so a popover centred on the
+   chip lands squarely on the hole cards. Open these upward into the felt
+   instead — the one thing the player must always be able to see is their hand. */
+.coach-chip-cards .coach-chip-popover,
+.coach-chip-pot .coach-chip-popover,
+.coach-chip-stack .coach-chip-popover {
+  top: auto;
+  bottom: calc(100% + 10px);
+  transform: none;
+}
+
+/* Four stats plus five icons in a 420px frame: without an explicit two-line
+   column each label wrapped to three lines and the value was clipped away. */
+.stat-strip .stat-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  white-space: nowrap;
+  font-size: 8.5px;
+  letter-spacing: 0.02em;
+}
+
+.stat-strip .stat-item b {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { pct, DEFINITIONS } from '../analysis';
 
 export interface PeekStripProps {
@@ -18,6 +18,11 @@ export const PeekStrip: React.FC<PeekStripProps> = ({
   bestLineLabel,
   onOpenSheet,
 }) => {
+  // The answer stays covered until asked for: seeing the best line before you
+  // have committed to one turns the drill into copying rather than deciding.
+  const [bestLineShown, setBestLineShown] = useState(false);
+  useEffect(() => setBestLineShown(false), [bestLineLabel]);
+
   const realizedPct = Math.round(realizedEquity * 100);
   const rawPct = Math.round(rawEquity * 100);
   const factorPct = Math.round(realizationFactor * 100);
@@ -60,7 +65,31 @@ export const PeekStrip: React.FC<PeekStripProps> = ({
         </span>
         <span className="peek-divider">•</span>
         <span className="peek-item" title={DEFINITIONS.ev}>
-          Best Line: <b className="peek-gold">{bestLineLabel}</b>
+          Best Line:{' '}
+          {bestLineShown ? (
+            <b className="peek-gold">{bestLineLabel}</b>
+          ) : (
+            <span
+              role="button"
+              tabIndex={0}
+              className="peek-reveal"
+              onClick={(e) => {
+                // The whole strip opens the Deep Math drawer, so the reveal has
+                // to claim the click before it bubbles up to that handler.
+                e.stopPropagation();
+                setBestLineShown(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setBestLineShown(true);
+                }
+              }}
+            >
+              tap to reveal
+            </span>
+          )}
         </span>
       </div>
       <div className="peek-trigger">
