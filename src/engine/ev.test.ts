@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseCards } from './cards';
 import { makeRng } from './rng';
 import { rangeTopPercent } from './ranges';
-import { evaluateSizes, potOddsVerdict, SIZES } from './ev';
+import { evaluateSizes, potOddsVerdict, SIZES, bluffPrice, minDefenseFrequency, commitmentTier } from './ev';
 
 const hole = (s: string) => parseCards(s) as [number, number];
 
@@ -33,6 +33,112 @@ describe('pot odds', () => {
 
   it('treats a free call as always correct', () => {
     expect(potOddsVerdict(0, 10, 0.1).required).toBe(0);
+  });
+});
+
+describe('bluff price', () => {
+  // Price table from spec: Bluff: bet / (pot + bet)
+  it('computes bluff price for 1/4 pot bet', () => {
+    const price = bluffPrice(0.25, 1); // bet 0.25 into pot 1
+    expect(price).toBeCloseTo(0.2, 6); // 0.25 / 1.25 = 0.2 = 20%
+  });
+
+  it('computes bluff price for 1/3 pot bet', () => {
+    const price = bluffPrice(1, 3);
+    expect(price).toBeCloseTo(0.25, 6); // 1 / 4 = 0.25 = 25%
+  });
+
+  it('computes bluff price for 1/2 pot bet', () => {
+    const price = bluffPrice(0.5, 1);
+    expect(price).toBeCloseTo(0.333, 2); // 0.5 / 1.5 ≈ 0.333 = 33%
+  });
+
+  it('computes bluff price for pot-sized bet', () => {
+    const price = bluffPrice(1, 1);
+    expect(price).toBeCloseTo(0.5, 6); // 1 / 2 = 0.5 = 50%
+  });
+
+  it('computes bluff price for 2x pot bet', () => {
+    const price = bluffPrice(2, 1);
+    expect(price).toBeCloseTo(0.667, 2); // 2 / 3 ≈ 0.667 = 67%
+  });
+
+  it('returns 0 when bet is 0', () => {
+    expect(bluffPrice(0, 10)).toBe(0);
+  });
+
+  it('approaches 1 as bet grows much larger than pot', () => {
+    expect(bluffPrice(1000, 1)).toBeCloseTo(0.999, 3);
+  });
+});
+
+describe('minimum defense frequency', () => {
+  // MDF: pot / (pot + bet)
+  it('computes MDF for 1/4 pot bet', () => {
+    const mdf = minDefenseFrequency(0.25, 1);
+    expect(mdf).toBeCloseTo(0.8, 6); // 1 / 1.25 = 0.8 = 80%
+  });
+
+  it('computes MDF for 1/3 pot bet', () => {
+    const mdf = minDefenseFrequency(1, 3);
+    expect(mdf).toBeCloseTo(0.75, 6); // 3 / 4 = 0.75 = 75%
+  });
+
+  it('computes MDF for 1/2 pot bet', () => {
+    const mdf = minDefenseFrequency(0.5, 1);
+    expect(mdf).toBeCloseTo(0.667, 2); // 1 / 1.5 ≈ 0.667 = 67%
+  });
+
+  it('computes MDF for pot-sized bet', () => {
+    const mdf = minDefenseFrequency(1, 1);
+    expect(mdf).toBeCloseTo(0.5, 6); // 1 / 2 = 0.5 = 50%
+  });
+
+  it('computes MDF for 2x pot bet', () => {
+    const mdf = minDefenseFrequency(2, 1);
+    expect(mdf).toBeCloseTo(0.333, 2); // 1 / 3 ≈ 0.333 = 33%
+  });
+
+  it('returns 0 when bet is 0', () => {
+    expect(minDefenseFrequency(0, 10)).toBe(0);
+  });
+
+  it('approaches 0 as bet grows much larger than pot', () => {
+    expect(minDefenseFrequency(1000, 1)).toBeCloseTo(0.001, 3);
+  });
+});
+
+describe('commitment tier', () => {
+  it('classifies SPR < 1 as committed', () => {
+    const result = commitmentTier(0.5);
+    expect(result.tier).toBe('committed');
+    expect(result.label).toBe('All-In Territory');
+  });
+
+  it('classifies 1 <= SPR < 3 as shallow', () => {
+    const result = commitmentTier(2);
+    expect(result.tier).toBe('shallow');
+    expect(result.label).toBe('Shallow Stack');
+  });
+
+  it('classifies 3 <= SPR < 6 as medium', () => {
+    const result = commitmentTier(4);
+    expect(result.tier).toBe('medium');
+    expect(result.label).toBe('Medium Stack');
+  });
+
+  it('classifies SPR >= 6 as deep', () => {
+    const result = commitmentTier(10);
+    expect(result.tier).toBe('deep');
+    expect(result.label).toBe('Deep Stack');
+  });
+
+  it('includes a note on each tier', () => {
+    for (const spr of [0.5, 2, 4, 10]) {
+      const result = commitmentTier(spr);
+      expect(result.note).toBeTruthy();
+      expect(result.note.length).toBeGreaterThan(0);
+    }
   });
 });
 

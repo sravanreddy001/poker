@@ -2,6 +2,8 @@ import { Card, RANKS, makeCard, rankOf, suitOf } from './cards';
 
 export type Combo = [Card, Card];
 
+export type HandTier = 'premium' | 'strong' | 'speculative' | 'marginal' | 'trash';
+
 export interface Range {
   combos: Combo[];
 }
@@ -74,4 +76,29 @@ export function rangeTopPercent(pct: number): Range {
 export function removeDead(r: Range, dead: Card[]): Range {
   const blocked = new Set(dead);
   return { combos: r.combos.filter(([a, b]) => !blocked.has(a) && !blocked.has(b)) };
+}
+
+/**
+ * Preflop tier by membership in top-N% opening ranges.
+ * Boundaries: premium ≤ 3%, strong ≤ 10%, speculative ≤ 20%, marginal ≤ 35%, else trash.
+ */
+export function tierOf(combo: Combo): { tier: HandTier; label: string; topPct: number } {
+  const name = canonicalName(combo[0], combo[1]);
+
+  // Test membership in increasing range sizes
+  const boundaries = [
+    { pct: 0.03, tier: 'premium' as HandTier, label: 'Premium (Top 3%)', topPct: 3 },
+    { pct: 0.1, tier: 'strong' as HandTier, label: 'Strong (Top 10%)', topPct: 10 },
+    { pct: 0.2, tier: 'speculative' as HandTier, label: 'Speculative (Top 20%)', topPct: 20 },
+    { pct: 0.35, tier: 'marginal' as HandTier, label: 'Marginal (Top 35%)', topPct: 35 },
+  ];
+
+  for (const { pct, tier, label, topPct } of boundaries) {
+    const range = rangeTopPercent(pct);
+    if (range.combos.some(([a, b]) => canonicalName(a, b) === name)) {
+      return { tier, label, topPct };
+    }
+  }
+
+  return { tier: 'trash', label: 'Trash (Below 35%)', topPct: 100 };
 }

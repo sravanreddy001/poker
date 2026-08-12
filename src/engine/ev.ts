@@ -11,6 +11,43 @@ export interface SizeOption {
   fraction: number;
 }
 
+/**
+ * Commitment tier from stack-to-pot ratio.
+ * SPR < 1: committed, < 3: shallow, < 6: medium, else deep.
+ */
+export function commitmentTier(spr: number): {
+  tier: 'committed' | 'shallow' | 'medium' | 'deep';
+  label: string;
+  note: string;
+} {
+  if (spr < 1) {
+    return {
+      tier: 'committed',
+      label: 'All-In Territory',
+      note: 'Stack is pot-committed; expect all chips in the middle.',
+    };
+  }
+  if (spr < 3) {
+    return {
+      tier: 'shallow',
+      label: 'Shallow Stack',
+      note: 'Limited room for further betting; decisions are simplified.',
+    };
+  }
+  if (spr < 6) {
+    return {
+      tier: 'medium',
+      label: 'Medium Stack',
+      note: 'Moderate play; position and playable hands matter most.',
+    };
+  }
+  return {
+    tier: 'deep',
+    label: 'Deep Stack',
+    note: 'Plenty of room to maneuver; complex post-flop play likely.',
+  };
+}
+
 export const SIZES: SizeOption[] = [
   { label: 'check', fraction: 0 },
   { label: '1/3 pot', fraction: 1 / 3 },
@@ -43,6 +80,24 @@ export function potOddsVerdict(toCall: number, pot: number, realized: number) {
   const required = toCall === 0 ? 0 : toCall / (pot + toCall);
   const evOfCall = realized * (pot + toCall) - toCall;
   return { required, actual: realized, evOfCall };
+}
+
+/**
+ * Share of folds a bluff must win to break even: bet / (pot + bet).
+ * Returns 0 when bet <= 0.
+ */
+export function bluffPrice(bet: number, pot: number): number {
+  if (bet <= 0) return 0;
+  return bet / (pot + bet);
+}
+
+/**
+ * Minimum defense frequency vs a bet: pot / (pot + bet).
+ * Returns 0 when bet <= 0.
+ */
+export function minDefenseFrequency(bet: number, pot: number): number {
+  if (bet <= 0) return 0;
+  return pot / (pot + bet);
 }
 
 export function evaluateSizes(
