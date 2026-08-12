@@ -165,9 +165,10 @@ export function isHeroInPosition(s: HandState, heroSeat = 0, btnSeat = 0): boole
  * Analyse the hero's current spot. Deterministic: seeded from the hand seed and
  * the board, so the same spot always produces the same numbers.
  */
-export function analyseSpot(s: HandState): HeroAnalysis {
+export function analyseSpot(s: HandState): HeroAnalysis | null {
   const hero = s.players[0];
-  const hole = hero.hole as Combo;
+  if (!hero.hole) return null; // Hero busted or not dealt in
+  const hole: Combo = hero.hole;
   const rng = makeRng(s.seed * 7919 + s.board.length * 31 + Math.round(s.pot * 10));
 
   const villainRange = rangeTopPercent(VILLAIN_RANGE_PCT);

@@ -13,6 +13,8 @@ export interface Player {
   /** Chips put in on the current street only. */
   committed: number;
   isHuman: boolean;
+  /** True if player has bust (0 stack) and sits out this hand. */
+  busted?: boolean;
 }
 
 export interface LogEntry {
@@ -20,6 +22,26 @@ export interface LogEntry {
   street: Street;
   action: Action;
   pot: number;
+}
+
+/**
+ * Snapshot of all-in state with cards still to come. Captured when the hero
+ * and at least one live opponent are all-in with remaining board cards.
+ * Used to compute all-in adjusted EV.
+ */
+export interface AllInSnapshot {
+  /** Hero's hole cards (seat 0) */
+  heroHole: Combo;
+  /** Actual hole cards of all live opponents at all-in point */
+  villainHoles: Combo[];
+  /** Community cards at the time of all-in */
+  board: Card[];
+  /** Total chips hero contributed to this pot */
+  heroContribution: number;
+  /** Final pot size when hand completed */
+  finalPot: number;
+  /** Street on which all-in occurred */
+  street: Street;
 }
 
 export interface HandState {
@@ -43,6 +65,10 @@ export interface HandState {
   winners: number[];
   /** Size of the pot at the moment it was awarded. `pot` itself drops to 0. */
   awardedPot: number;
+  /** Snapshot of all-in with cards to come, if applicable. */
+  allInSnapshot?: AllInSnapshot;
+  /** Hero's starting stack for this hand (used for all-in snapshot computation). */
+  heroStartStack?: number;
 }
 
 const NEXT_STREET: Record<Street, Street | null> = {
@@ -75,26 +101,43 @@ export function startHand(
   const bbSeat = (btnSeat + 2) % n;
   const utgSeat = (btnSeat + 3) % n;
 
-  const players: Player[] = Array.from({ length: n }, (_, id) => {
+  const players: Player[] = [];
+  for (let id = 0; id < n; id++) {
     const prevStack = existingStacks && existingStacks[id] !== undefined ? existingStacks[id] : opts.stack;
-    const startStack = prevStack >= 10 ? prevStack : opts.stack;
+    const isBusted = prevStack <= 0;
+    let hole: Combo | null = null;
 
-    return {
+    if (!isBusted) {
+      hole = [deck[drawn++], deck[drawn++]] as Combo;
+    }
+
+    players.push({
       id,
-      stack: startStack,
-      hole: [deck[drawn++], deck[drawn++]] as Combo,
-      folded: false,
+      stack: prevStack,
+      hole,
+      folded: isBusted,
       committed: 0,
       isHuman: id === 0,
-    };
-  });
+      busted: isBusted,
+    });
+  }
 
   // Blinds: SB posted at (btn+1), BB posted at (btn+2)
+  // If a player is busted, they don't post a blind
   const sb = opts.bigBlind / 2;
-  players[sbSeat].stack -= sb;
-  players[sbSeat].committed = sb;
-  players[bbSeat].stack -= opts.bigBlind;
-  players[bbSeat].committed = opts.bigBlind;
+  if (!players[sbSeat].busted) {
+    players[sbSeat].stack -= sb;
+    players[sbSeat].committed = sb;
+  }
+  if (!players[bbSeat].busted) {
+    players[bbSeat].stack -= opts.bigBlind;
+    players[bbSeat].committed = opts.bigBlind;
+  }
+
+  // Calculate actual pot from blinds that were posted
+  let pot = 0;
+  if (!players[sbSeat].busted) pot += sb;
+  if (!players[bbSeat].busted) pot += opts.bigBlind;
 
   return {
     seed,
@@ -103,7 +146,7 @@ export function startHand(
     board: [],
     deck,
     drawn,
-    pot: sb + opts.bigBlind,
+    pot,
     street: 'preflop',
     toAct: utgSeat,
     currentBet: opts.bigBlind,
@@ -115,6 +158,7 @@ export function startHand(
     complete: false,
     winners: [],
     awardedPot: 0,
+    heroStartStack: players[0].stack + (sb > 0 && players[sbSeat].id === 0 ? sb : 0) + (opts.bigBlind > 0 && players[bbSeat].id === 0 ? opts.bigBlind : 0),
   };
 }
 
@@ -148,8 +192,49 @@ function streetComplete(s: HandState): boolean {
   return able.every((p) => s.actedThisStreet.has(p.id) && p.committed === s.currentBet);
 }
 
-function showdown(s: HandState): HandState {
+/**
+ * Captures all-in snapshot when hero and at least one opponent are all-in
+ * with cards still to come. Returns null if conditions not met.
+ * heroStartStack should be passed from App.tsx where it's tracked.
+ */
+function captureAllInSnapshot(s: HandState, heroStartStack: number, heroId: number = 0): AllInSnapshot | null {
   const live = livePlayers(s);
+
+  // Need 2+ live players and hero must be one of them
+  if (live.length < 2 || !live.some((p) => p.id === heroId)) return null;
+
+  const hero = s.players[heroId];
+
+  // Hero must be all-in (stack = 0) and not folded
+  if (hero.stack !== 0 || hero.folded) return null;
+
+  // At least one other live player must also be all-in
+  const otherAllIn = live.filter((p) => p.id !== heroId && p.stack === 0);
+  if (otherAllIn.length === 0) return null;
+
+  // Must have cards to come
+  if (s.street === 'river' || s.board.length === 5) return null;
+
+  // Get villain combos (all live opponents except hero)
+  const villainHoles = live
+    .filter((p) => p.id !== heroId && p.hole)
+    .map((p) => p.hole as Combo);
+
+  // Hero contribution = starting stack (since now at 0)
+  const heroContribution = heroStartStack;
+
+  return {
+    heroHole: hero.hole as Combo,
+    villainHoles,
+    board: s.board,
+    heroContribution,
+    finalPot: s.pot,
+    street: s.street,
+  };
+}
+
+function showdown(s: HandState): HandState {
+  const live = livePlayers(s).filter((p) => p.hole); // Only count players with hole cards
   if (live.length === 0) return { ...s, complete: true, winners: [], awardedPot: s.pot };
 
   const scores = live.map((p) => ({
@@ -173,6 +258,14 @@ function showdown(s: HandState): HandState {
 function advanceStreet(s: HandState): HandState {
   let cur = s;
 
+  // Capture all-in snapshot before advancing if applicable
+  if (!cur.allInSnapshot && actors(cur).length === 0 && livePlayers(cur).length >= 2 && cur.heroStartStack) {
+    const snapshot = captureAllInSnapshot(cur, cur.heroStartStack, 0);
+    if (snapshot) {
+      cur = { ...cur, allInSnapshot: snapshot };
+    }
+  }
+
   // Keep dealing until a street has at least two players able to bet. When
   // everyone left is all-in there is no more betting, so the board simply runs
   // out to showdown.
@@ -190,6 +283,8 @@ function advanceStreet(s: HandState): HandState {
       actedThisStreet: new Set(),
       raisesThisStreet: 0,
       players: cur.players.map((p) => ({ ...p, committed: 0 })),
+      allInSnapshot: cur.allInSnapshot,
+      heroStartStack: cur.heroStartStack,
     };
 
     if (actors(cur).length >= 2) return { ...cur, toAct: nextToAct(cur, cur.btnSeat) };
@@ -297,6 +392,11 @@ export function stepBots(state: HandState): HandState {
   let guard = 0;
   while (!s.complete && !s.players[s.toAct].isHuman && guard++ < 200) {
     const p = s.players[s.toAct];
+    // Skip if player cannot act (busted or folded)
+    if (!canAct(p)) {
+      s = { ...s, toAct: nextToAct(s, s.toAct) };
+      continue;
+    }
     const action = botAct(
       {
         hole: p.hole as Combo,

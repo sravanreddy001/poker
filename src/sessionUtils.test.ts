@@ -23,13 +23,13 @@ describe('handResult', () => {
     expect(result).toBe(-1);
   });
 
-  it('handles hero topped up from under 10 to 100 without counting top-up as profit', () => {
+  it('handles short stacks: a player with 5 chips starts next hand with 5 chips', () => {
     // Hero had 5 chips at end of previous hand
-    // Top-up rule sets start stack to 100 for this hand
-    const startStack = 100; // This is the topped-up value
-    const endStack = 150; // Hero won 50 chips during the hand
+    // No top-up rule anymore: starts next hand with 5 chips
+    const startStack = 5;
+    const endStack = 55; // Won 50 chips during the hand
     const result = handResult(startStack, endStack);
-    // The result should be 50, NOT 145 (which would count the 95-chip top-up as profit)
+    // The result should be 50
     expect(result).toBe(50);
   });
 
