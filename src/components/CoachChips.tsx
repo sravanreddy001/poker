@@ -187,60 +187,69 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
       }
 
       case 'POT': {
-        // Preflop: price of call if facing raise, else dimmed
-        // Flop+: toCall, ratio, break-even %
-        if (isPreflop) {
-          if (toCall === 0) {
-            return {
-              value: '—',
-              state: 'dimmed',
-              popover: <div className="coach-popover-text">No bet to call preflop (open decision).</div>,
-            };
-          }
-          const odds = analysis.potOdds.required;
+        // Nothing to price until someone bets; every street works the same way
+        // after that, so preflop shares the arithmetic below.
+        if (toCall === 0) {
           return {
-            value: `${pct(odds)}`,
-            state: liveAnchors.has('POT') ? 'live' : 'idle',
+            value: '—',
+            state: 'dimmed',
             popover: (
-              <div className="coach-popover-content">
-                <div className="coach-popover-line">
-                  Call {money(toCall)} to win {money(state.pot + toCall)}
-                </div>
-                <div className="coach-popover-line">Need {pct(odds)} to break even</div>
-                <div className="coach-popover-table">
-                  At the table: "They bet {money(toCall)}, I need {pct(odds)}"
-                </div>
+              <div className="coach-popover-text">
+                No bet to call — there is no price on the pot until someone makes one.
               </div>
             ),
           };
         }
 
-        // Flop, Turn, River: toCall, ratio, break-even %
         // The bet is already in state.pot, so measure it against what it was
         // bet into — otherwise a pot-sized bet reads as half pot.
         const potBeforeBet = Math.max(0, state.pot - toCall);
         const ratio = potBeforeBet > 0 ? toCall / potBeforeBet : 0;
         const odds = analysis.potOdds.required;
+        const finalPot = state.pot + toCall;
+        // Pot odds as a ratio, the form it is usually said out loud in.
+        const against = odds > 0 ? (1 - odds) / odds : 0;
+
         return {
           value: pct(odds),
           state: liveAnchors.has('POT') ? 'live' : 'idle',
           popover: (
             <div className="coach-popover-content">
-              <div className="coach-popover-line">
-                <b>Call: {money(toCall)}</b>
+              {/* Four lines of arithmetic, every step shown. The sum is simple
+                  on purpose: the point is to run it the same way each time
+                  until it stops needing to be run on screen at all. */}
+              <div className="coach-math">
+                <span className="coach-math-step">They bet</span>
+                <span className="coach-math-work">
+                  {money(toCall)} into {money(potBeforeBet)}
+                </span>
+                <span className="coach-math-out">
+                  {ratio > 0 ? `${Math.round(ratio * 100)}% pot` : '—'}
+                </span>
+
+                <span className="coach-math-step">Pot if you call</span>
+                <span className="coach-math-work">
+                  {money(state.pot)} + {money(toCall)}
+                </span>
+                <span className="coach-math-out">{money(finalPot)}</span>
+
+                <span className="coach-math-step">Your share of it</span>
+                <span className="coach-math-work">
+                  {money(toCall)} ÷ {money(finalPot)}
+                </span>
+                <span className="coach-math-out coach-math-answer">{pct(odds)}</span>
+
+                <span className="coach-math-step">Said out loud</span>
+                <span className="coach-math-work">{against.toFixed(1)} to 1</span>
+                <span className="coach-math-out">
+                  win 1 in {odds > 0 ? Math.round(1 / odds) : '—'}
+                </span>
               </div>
               <div className="coach-popover-line">
-                {money(toCall)} ÷ ({money(state.pot)} pot + {money(toCall)}) = {pct(odds)} — the
-                share of the final pot your call buys.
+                That {pct(odds)} is the minimum you must win to break even — beat it and calling
+                makes money, miss it and it loses.
               </div>
-              <div className="coach-popover-line">
-                You have to win this about 1 hand in{' '}
-                {odds > 0 ? Math.round(1 / odds) : '—'} to break even. They are betting{' '}
-                {ratio > 0 ? `${Math.round(ratio * 100)}%` : '—'} of the pot.
-              </div>
-              <div className="coach-popover-table">
-                At the table: "Price is {pct(odds)}"
-              </div>
+              <div className="coach-popover-table">At the table: "Price is {pct(odds)}"</div>
             </div>
           ),
         };
