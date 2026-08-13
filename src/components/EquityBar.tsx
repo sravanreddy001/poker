@@ -1,6 +1,7 @@
 import React from 'react';
 import { DEFINITIONS, money } from '../analysis';
 import type { MathRow } from '../analysis';
+import { preflopTierTable } from '../engine/equity';
 import type { EquityMethod } from '../engine/equity';
 
 export interface EquityBarProps {
@@ -15,6 +16,12 @@ export interface EquityBarProps {
   /** The price itself, so the break-even line shows real dollars. */
   toCall?: number;
   pot?: number;
+  /** The hand being held, so the chart can point at its own row. */
+  handName?: string;
+  handRank?: number;
+  handOf?: number;
+  /** Which chart row the hand landed in: 'premium' … 'trash'. */
+  tierKey?: string;
 }
 
 const METHOD_TITLE: Record<EquityMethod, string> = {
@@ -31,6 +38,9 @@ const METHOD_HOW: Record<EquityMethod, string> = {
   outs: 'You are behind, so the number is about improving. Count the cards that would put you in front, then use the Rule of 4 and 2: × 4 on the flop (two cards to come), × 2 on the turn (one card).',
 };
 
+/** The chart is the same every hand, so it is built once. */
+const TIER_ROWS = preflopTierTable();
+
 export const EquityBar: React.FC<EquityBarProps> = ({
   winOdds,
   winOddsWorking,
@@ -39,6 +49,10 @@ export const EquityBar: React.FC<EquityBarProps> = ({
   breakEvenOdds,
   toCall = 0,
   pot = 0,
+  handName,
+  handRank,
+  handOf,
+  tierKey,
 }) => {
   const winPct = Math.min(100, Math.max(0, Math.round(winOdds * 100)));
   const breakEvenPct =
@@ -83,6 +97,56 @@ export const EquityBar: React.FC<EquityBarProps> = ({
           </div>
         )}
       </div>
+
+      {winOddsMethod === 'tier' && (
+        <div className="tier-chart-card">
+          <div className="tier-chart-header">
+            <span>The chart this number came from</span>
+            {handName && handRank && handOf && (
+              <span className="tier-chart-hand">
+                {handName} — #{handRank} of {handOf}
+              </span>
+            )}
+          </div>
+          <table className="tier-chart">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Slice of all hands</th>
+                <th>Combos</th>
+                <th>Starts at</th>
+                <th>Win odds</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TIER_ROWS.map((row) => {
+                const mine = row.tier === tierKey;
+                return (
+                  <tr key={row.tier} className={mine ? 'tier-row-mine' : ''}>
+                    <td>
+                      {mine && <span className="tier-row-dot" aria-hidden="true" />}
+                      {row.label}
+                    </td>
+                    <td>
+                      {row.fromPct}–{row.toPct}%
+                    </td>
+                    <td>{row.combos}</td>
+                    <td>{row.examples.join(' ')}</td>
+                    <td className="tier-row-equity">{Math.round(row.equity * 100)}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="equity-method-note">
+            Every hand is ranked by strength, then cut into five slices. Yours falls in the{' '}
+            <b>{TIER_ROWS.find((r) => r.tier === tierKey)?.label ?? 'listed'}</b> slice, so the chart's number for that slice is your win
+            odds. These five figures are the one thing the trainer does not count out — before the
+            flop there is no board to count against, so a chart is what you would use at the table
+            too. Everything from the flop on is counted from the cards in front of you.
+          </p>
+        </div>
+      )}
 
       <div className="learning-card">
         <div className="learning-card-header">

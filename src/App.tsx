@@ -465,6 +465,10 @@ export default function App() {
                     }
                     toCall={shown.analysis.toCall}
                     pot={shown.state.pot}
+                    handName={shown.analysis.shape.name}
+                    handRank={shown.analysis.shape.rank}
+                    handOf={shown.analysis.shape.of}
+                    tierKey={shown.analysis.preflopTier?.tier}
                   />
                   <OutsStrip
                     outs={shown.analysis.outs}

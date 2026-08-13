@@ -1,6 +1,6 @@
 import { Card, fullDeck, rankOf, suitOf } from './cards';
 import { evaluate } from './evaluator';
-import { Combo, Range, removeDead, tierOf } from './ranges';
+import { Combo, Range, removeDead, tierOf, HAND_ORDER, combosOf, rangeTopPercent } from './ranges';
 
 function deadDeck(dead: Card[]): Card[] {
   const blocked = new Set(dead);
@@ -97,14 +97,75 @@ export function structuralOuts(hero: Combo, board: Card[]): number {
   return Math.min(15, draw > 0 ? draw + Math.floor(overcards / 2) : overcards);
 }
 
-/** Rough win odds by preflop hand tier against a typical opening range. */
-const PREFLOP_TIER_EQUITY: Record<string, number> = {
+/**
+ * The starting-hand chart the trainer uses preflop, and the only place these
+ * five numbers live. They are round-number equities for the middle of each
+ * tier against a typical 25% opening range — a chart, which is what a player
+ * works from before the flop. Everything after the flop is counted instead.
+ */
+export const PREFLOP_TIER_EQUITY: Record<string, number> = {
   premium: 0.68,
   strong: 0.58,
   speculative: 0.5,
   marginal: 0.44,
   trash: 0.36,
 };
+
+export interface TierRow {
+  tier: string;
+  label: string;
+  /** Where the tier starts and stops in the ranking, in percent of all combos. */
+  fromPct: number;
+  toPct: number;
+  equity: number;
+  /** How many of the 1326 two-card combos fall inside the tier. */
+  combos: number;
+  /** The hands at the top of the tier, for recognition. */
+  examples: string[];
+}
+
+/**
+ * The whole chart, laid out so it can be read rather than trusted: each tier,
+ * the slice of the 169-hand ranking it covers, how many combos that is, and
+ * the win odds the trainer scores it at.
+ */
+export function preflopTierTable(): TierRow[] {
+  const bands = [
+    { tier: 'premium', label: 'Premium', from: 0, to: 3 },
+    { tier: 'strong', label: 'Strong', from: 3, to: 10 },
+    { tier: 'speculative', label: 'Speculative', from: 10, to: 20 },
+    { tier: 'marginal', label: 'Marginal', from: 20, to: 35 },
+    { tier: 'trash', label: 'Trash', from: 35, to: 100 },
+  ];
+  // The names in a band are the ones the smaller range stops short of, which
+  // is the same walk down HAND_ORDER that rangeTopPercent itself makes.
+  const namesUpTo = (pct: number): string[] => {
+    const target = Math.round(1326 * pct);
+    const names: string[] = [];
+    let count = 0;
+    for (const name of HAND_ORDER) {
+      if (count >= target) break;
+      names.push(name);
+      count += combosOf(name).length;
+    }
+    return names;
+  };
+
+  return bands.map(({ tier, label, from, to }) => {
+    const below = namesUpTo(from / 100);
+    const upTo = namesUpTo(to / 100);
+    return {
+      tier,
+      label,
+      fromPct: from,
+      toPct: to,
+      equity: PREFLOP_TIER_EQUITY[tier],
+      combos:
+        rangeTopPercent(to / 100).combos.length - rangeTopPercent(from / 100).combos.length,
+      examples: upTo.slice(below.length, below.length + 3),
+    };
+  });
+}
 
 export type EquityMethod = 'tier' | 'showdown' | 'outs';
 
