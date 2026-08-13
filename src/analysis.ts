@@ -1,7 +1,7 @@
 import { Card, rankOf, suitOf } from './engine/cards';
 import { countOuts, ruleOf42, tableEquity, EquityMethod } from './engine/equity';
 import { evaluateSizes, potOddsVerdict, EvOption, bluffPrice, minDefenseFrequency, commitmentTier } from './engine/ev';
-import { rangeTopPercent, Combo, tierOf, handShape, HandShape, HandTier } from './engine/ranges';
+import { rangeTopPercent, removeDead, Combo, tierOf, handShape, HandShape, HandTier } from './engine/ranges';
 import { makeRng } from './engine/rng';
 import { DEFAULT_BOT } from './engine/bot';
 import type { HandState } from './engine/game';
@@ -10,6 +10,14 @@ import { streetOf } from './engine/types';
 /** The opponent range the trainer assumes and discloses on screen. */
 export const VILLAIN_RANGE_PCT = 0.25;
 
+/** One line of shown arithmetic: what is being worked out, and the sum itself. */
+export interface MathRow {
+  label: string;
+  expr: string;
+  /** Set on the line that carries the answer, so it can be highlighted. */
+  answer?: boolean;
+}
+
 export interface HeroAnalysis {
   /** Win odds 0..1 — the single number the trainer shows and acts on. */
   winOdds: number;
@@ -17,6 +25,8 @@ export interface HeroAnalysis {
   winOddsMethod: EquityMethod;
   /** One line of arithmetic the player can redo at the table. */
   winOddsWorking: string;
+  /** The same arithmetic split into steps, so every number has a source. */
+  winOddsMath: MathRow[];
   outs: Card[];
   ruleOfNEstimate: number | null;
   cardsToCome: number;
@@ -206,6 +216,45 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
           }.`
         : `Your hand already beats ${winPct}% of the hands they can hold on this board.`;
 
+  // The same working, one step per line. Every figure here is either counted
+  // off the board or read off a chart — nothing is simulated, so the player can
+  // redo each line in their head at the table.
+  const liveCombos = removeDead(villainRange, [...hole, ...s.board]).combos.length;
+  const winOddsMath: MathRow[] =
+    win.method === 'tier'
+      ? [
+          { label: 'Your starting hand', expr: `${handShape(hole).name} — ${preflopTier?.label ?? ''}` },
+          {
+            label: 'Chart says',
+            expr: `that tier wins about ${winPct}% against the top ${Math.round(VILLAIN_RANGE_PCT * 100)}% of hands`,
+          },
+          { label: 'Win odds', expr: `${winPct}%`, answer: true },
+        ]
+      : win.method === 'outs'
+        ? [
+            { label: 'Cards that save you', expr: `${win.outs} outs` },
+            {
+              label: 'Cards still to come',
+              expr: `${cardsToCome} — so multiply by ${cardsToCome >= 2 ? '4' : '2'}`,
+            },
+            { label: 'Rule of 4 and 2', expr: `${win.outs} × ${cardsToCome >= 2 ? 4 : 2} = ${winPct}%`, answer: true },
+          ]
+        : [
+            {
+              label: 'Hands they can hold',
+              expr: `${liveCombos} combos — top ${Math.round(VILLAIN_RANGE_PCT * 100)}%, minus the cards you can see`,
+            },
+            {
+              label: 'How many you beat',
+              expr: `${Math.round(win.equity * liveCombos)} of them (ties count as half)`,
+            },
+            {
+              label: 'Your share',
+              expr: `${Math.round(win.equity * liveCombos)} ÷ ${liveCombos} = ${winPct}%`,
+              answer: true,
+            },
+          ];
+
   const advice = evaluateSizes({ ...input, toCall }, rng);
 
   // Coach chips data
@@ -221,6 +270,7 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
     winOdds: win.equity,
     winOddsMethod: win.method,
     winOddsWorking,
+    winOddsMath,
     outs,
     ruleOfNEstimate,
     cardsToCome,

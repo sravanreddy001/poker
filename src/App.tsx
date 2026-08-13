@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { startHand, applyAction, stepBotOnce, HandState } from './engine/game';
 import type { Action } from './engine/types';
 import { analyseSpot, money, HeroAnalysis, VILLAIN_RANGE_PCT, getOptimalActionRationale } from './analysis';
@@ -101,6 +101,17 @@ export default function App() {
     () => (!state.complete && !hero.folded && hero.hole ? analyseSpot(state) : null),
     [state, hero.folded, hero.hole],
   );
+
+  // The coach row, peek strip and sheet render from the last analysis that
+  // existed rather than unmounting the moment one is unavailable — after a
+  // fold, at showdown, and in the gap between hands. Panels that come and go
+  // resize the layout under the cursor, which is the flicker.
+  // The state is kept with it: the numbers behind the chips are read off the
+  // pot and the board, so a live state under a frozen analysis would show a
+  // price for a pot that has already been awarded.
+  const retained = useRef<{ analysis: HeroAnalysis; state: HandState } | null>(null);
+  if (analysis) retained.current = { analysis, state };
+  const shown = analysis ? { analysis, state } : retained.current;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
@@ -401,41 +412,41 @@ export default function App() {
 
           {/* Every coach number in one labelled row, directly above the peek
               strip — they used to be scattered around the outside of the felt. */}
-          {analysis && (
+          {shown && (
             <CoachChips
-              analysis={analysis}
-              state={state}
+              analysis={shown.analysis}
+              state={shown.state}
               coachDensity={coachDensity}
-              toCall={analysis.toCall}
+              toCall={shown.analysis.toCall}
             />
           )}
 
           {/* Peek Strip (Above Action Bar) */}
-          {analysis && (
+          {shown && (
             <PeekStrip
-              winOdds={analysis.winOdds}
-              winOddsWorking={analysis.winOddsWorking}
-              breakEvenOdds={analysis.potOdds.required}
+              winOdds={shown.analysis.winOdds}
+              winOddsWorking={shown.analysis.winOddsWorking}
+              breakEvenOdds={shown.analysis.potOdds.required}
               bestLineLabel={bestLineLabel}
               onOpenSheet={() => handleSnapChange(snapMemory === 'peek' ? 'half' : snapMemory)}
             />
           )}
 
           {/* Fixed Action Bar Footer */}
-          {analysis && (
+          {shown && !state.complete && (
             <ActionBar
-              toCall={analysis.toCall}
-              pot={state.pot}
+              toCall={shown.analysis.toCall}
+              pot={shown.state.pot}
               stack={hero.stack}
-              bigBlind={state.bigBlind}
+              bigBlind={shown.state.bigBlind}
               sizeButtons={sizeButtons}
               onAct={act}
-              disabled={!heroTurn}
+              disabled={!heroTurn || !analysis}
             />
           )}
 
           {/* Expandable Bottom Sheet */}
-          {analysis && (
+          {shown && (
             <BottomSheet
               snap={snap}
               onSnapChange={handleSnapChange}
@@ -445,31 +456,34 @@ export default function App() {
               {activeTab === 'equity' && (
                 <>
                   <EquityBar
-                    winOdds={analysis.winOdds}
-                    winOddsWorking={analysis.winOddsWorking}
-                    winOddsMethod={analysis.winOddsMethod}
+                    winOdds={shown.analysis.winOdds}
+                    winOddsWorking={shown.analysis.winOddsWorking}
+                    winOddsMath={shown.analysis.winOddsMath}
+                    winOddsMethod={shown.analysis.winOddsMethod}
                     breakEvenOdds={
-                      analysis.toCall > 0 ? analysis.toCall / (state.pot + analysis.toCall) : undefined
+                      shown.analysis.toCall > 0 ? shown.analysis.toCall / (shown.state.pot + shown.analysis.toCall) : undefined
                     }
+                    toCall={shown.analysis.toCall}
+                    pot={shown.state.pot}
                   />
                   <OutsStrip
-                    outs={analysis.outs}
-                    ruleOfNEstimate={analysis.ruleOfNEstimate}
-                    cardsToCome={analysis.cardsToCome}
+                    outs={shown.analysis.outs}
+                    ruleOfNEstimate={shown.analysis.ruleOfNEstimate}
+                    cardsToCome={shown.analysis.cardsToCome}
                   />
                 </>
               )}
 
               {activeTab === 'lines' && (
                 <EVBarChart
-                  advice={analysis.advice}
-                  potOddsEvOfCall={analysis.potOdds.evOfCall}
-                  toCall={analysis.toCall}
+                  advice={shown.analysis.advice}
+                  potOddsEvOfCall={shown.analysis.potOdds.evOfCall}
+                  toCall={shown.analysis.toCall}
                   chosenLabel={lastFeedback?.chosen}
                   revealed={revealed}
                   onReveal={handleReveal}
-                  pot={state.pot}
-                  winOdds={analysis.winOdds}
+                  pot={shown.state.pot}
+                  winOdds={shown.analysis.winOdds}
                 />
               )}
 
@@ -487,6 +501,27 @@ export default function App() {
                     : `Hand Complete • ${money(state.awardedPot)} Pot Awarded`}
                 </span>
                 <span className="complete-sub">Hole cards revealed in place on table</span>
+              </div>
+              {/* The bar takes the action bar's slot and its height, so nothing
+                  above it moves when the hand ends. The space the buttons leave
+                  behind carries the numbers from the hand instead. */}
+              <div className="hand-complete-facts">
+                <div className="complete-fact">
+                  <span className="complete-fact-label">Final win odds</span>
+                  <span className="complete-fact-value">
+                    {shown ? `${Math.round(shown.analysis.winOdds * 100)}%` : '—'}
+                  </span>
+                </div>
+                <div className="complete-fact">
+                  <span className="complete-fact-label">Decisions</span>
+                  <span className="complete-fact-value">{decisions.length}</span>
+                </div>
+                <div className="complete-fact">
+                  <span className="complete-fact-label">EV lost</span>
+                  <span className="complete-fact-value">
+                    {money(decisions.reduce((sum, d) => sum + d.evLost, 0))}
+                  </span>
+                </div>
               </div>
               <div className="hand-complete-actions">
                 <button

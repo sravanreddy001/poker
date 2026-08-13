@@ -1,5 +1,6 @@
 import React from 'react';
-import { DEFINITIONS } from '../analysis';
+import { DEFINITIONS, money } from '../analysis';
+import type { MathRow } from '../analysis';
 import type { EquityMethod } from '../engine/equity';
 
 export interface EquityBarProps {
@@ -7,8 +8,13 @@ export interface EquityBarProps {
   winOdds: number;
   /** The arithmetic behind `winOdds`, in one line. */
   winOddsWorking: string;
+  /** The same working, one step per line. */
+  winOddsMath: MathRow[];
   winOddsMethod: EquityMethod;
   breakEvenOdds?: number;
+  /** The price itself, so the break-even line shows real dollars. */
+  toCall?: number;
+  pot?: number;
 }
 
 const METHOD_TITLE: Record<EquityMethod, string> = {
@@ -17,11 +23,22 @@ const METHOD_TITLE: Record<EquityMethod, string> = {
   outs: 'Rule of 4 and 2',
 };
 
+/** Where the number comes from, before the arithmetic that produces it. */
+const METHOD_HOW: Record<EquityMethod, string> = {
+  tier: 'No board yet, so there is nothing to count. The number is read off a starting-hand chart: which tier your two cards fall in, and how that tier scores against the range this opponent opens.',
+  showdown:
+    'You are already ahead, so the count is exact. Deal every hand the opponent can still hold against this board, and see how many of them your five cards beat. Ties count as half.',
+  outs: 'You are behind, so the number is about improving. Count the cards that would put you in front, then use the Rule of 4 and 2: × 4 on the flop (two cards to come), × 2 on the turn (one card).',
+};
+
 export const EquityBar: React.FC<EquityBarProps> = ({
   winOdds,
   winOddsWorking,
+  winOddsMath,
   winOddsMethod,
   breakEvenOdds,
+  toCall = 0,
+  pot = 0,
 }) => {
   const winPct = Math.min(100, Math.max(0, Math.round(winOdds * 100)));
   const breakEvenPct =
@@ -71,23 +88,52 @@ export const EquityBar: React.FC<EquityBarProps> = ({
         <div className="learning-card-header">
           <span>💡 Do this yourself</span>
         </div>
+        <p className="equity-working-lede">{winOddsWorking}</p>
         <div className="learning-card-body">
-          <p style={{ margin: '0 0 6px 0' }}>
-            <b>1. Your win odds ({winPct}%)</b>:<br />
-            {winOddsWorking}
-          </p>
+          <p className="equity-method-note">{METHOD_HOW[winOddsMethod]}</p>
+
+          <div className="coach-math-block">
+            <div className="coach-math-title">1. Your win odds</div>
+            {winOddsMath.map((row) => (
+              <div key={row.label} className={`coach-math ${row.answer ? 'coach-math-answer' : ''}`}>
+                <span className="coach-math-label">{row.label}</span>
+                <span className="coach-math-expr">{row.expr}</span>
+              </div>
+            ))}
+          </div>
+
           {breakEvenPct !== null && breakEvenPct > 0 && (
             <>
-              <p style={{ margin: '0 0 6px 0' }}>
-                <b>2. The price ({breakEvenPct}%)</b>:<br />
-                Call ÷ (pot + call). That share of the final pot is what the call costs you, so it is
-                the minimum win rate that breaks even.
-              </p>
-              <p style={{ margin: 0 }}>
-                <b>3. Compare</b>:<br />
-                {winPct}% {clears ? '≥' : '<'} {breakEvenPct}% —{' '}
-                {clears ? 'calling is profitable.' : 'calling loses money over time.'}
-              </p>
+              <div className="coach-math-block">
+                <div className="coach-math-title">2. The price</div>
+                <div className="coach-math">
+                  <span className="coach-math-label">Break-even</span>
+                  <span className="coach-math-expr">
+                    {toCall > 0
+                      ? `${money(toCall)} ÷ (${money(pot)} + ${money(toCall)}) = ${money(pot + toCall)} pot`
+                      : 'call ÷ (pot + call)'}
+                  </span>
+                </div>
+                <div className="coach-math coach-math-answer">
+                  <span className="coach-math-label">Needed to call</span>
+                  <span className="coach-math-expr">{breakEvenPct}%</span>
+                </div>
+                <p className="equity-method-note">
+                  That share of the final pot is what the call costs you, so it is the lowest win
+                  rate that breaks even.
+                </p>
+              </div>
+
+              <div className="coach-math-block">
+                <div className="coach-math-title">3. Compare</div>
+                <div className="coach-math coach-math-answer">
+                  <span className="coach-math-label">{clears ? 'Call' : 'Fold'}</span>
+                  <span className="coach-math-expr">
+                    {winPct}% {clears ? '≥' : '<'} {breakEvenPct}% —{' '}
+                    {clears ? 'calling is profitable.' : 'calling loses money over time.'}
+                  </span>
+                </div>
+              </div>
             </>
           )}
         </div>

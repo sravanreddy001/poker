@@ -2376,3 +2376,96 @@ html, body {
 .stat-strip {
   overflow: visible;
 }
+
+/* Win-odds working inside the sheet: the same three-column sum used by the
+   coach chips, so a number looks identical wherever it is shown. */
+.coach-math-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.coach-math-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.coach-math-label {
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.coach-math-expr {
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.coach-math-answer .coach-math-expr {
+  color: var(--amber, #f59e0b);
+  font-weight: 800;
+}
+
+.equity-method-note {
+  margin: 0 0 8px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.equity-working-lede {
+  margin: 0 0 8px 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Both footer bars claim the same slot and the same height, so the felt above
+   them never resizes when the hand ends. */
+.action-bar-container,
+.hand-complete-bar {
+  height: 150px;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* The end-of-hand bar carries a row more than the action bar in the same
+   height, so its own gaps tighten rather than the felt above it moving. */
+.hand-complete-bar {
+  gap: 6px;
+  padding: 8px 14px max(10px, env(safe-area-inset-bottom));
+}
+
+.hand-complete-facts {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.complete-fact {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+}
+
+.complete-fact-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.complete-fact-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
