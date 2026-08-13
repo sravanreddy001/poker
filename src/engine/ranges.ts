@@ -91,7 +91,18 @@ export interface HandShape {
   of: number;
   /** Why the hand sits where it does, in the terms a player uses at the table. */
   reasons: string[];
+  /** The hands ranked immediately above this one, strongest first. */
+  better: string[];
+  /** The hands ranked immediately below this one. */
+  worse: string[];
 }
+
+/**
+ * How many neighbours either side of the hand the chip panel shows. Seeing the
+ * same handful of hands on either side of yours, hand after hand, is how the
+ * starting-hand chart gets learned without sitting down to memorise it.
+ */
+const NEIGHBOUR_SPAN = 4;
 
 /**
  * The reasons behind a hand's tier. A label like "Trash" only teaches once;
@@ -129,7 +140,15 @@ export function handShape(combo: Combo): HandShape {
     );
   }
 
-  return { name, rank: HAND_ORDER.indexOf(name) + 1, of: HAND_ORDER.length, reasons };
+  const index = HAND_ORDER.indexOf(name);
+  return {
+    name,
+    rank: index + 1,
+    of: HAND_ORDER.length,
+    reasons,
+    better: HAND_ORDER.slice(Math.max(0, index - NEIGHBOUR_SPAN), index),
+    worse: HAND_ORDER.slice(index + 1, index + 1 + NEIGHBOUR_SPAN),
+  };
 }
 
 export function tierOf(combo: Combo): { tier: HandTier; label: string; topPct: number } {

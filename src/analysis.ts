@@ -209,8 +209,12 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
   const advice = evaluateSizes({ ...input, toCall }, rng);
 
   // Coach chips data
+  // A bet is already in s.pot by the time the hero acts, but MDF is defined
+  // against the pot the bettor bet into. Without backing the bet out, a
+  // pot-sized bet reported an MDF of 66% where the real answer is 50%.
+  const potBeforeBet = Math.max(0, s.pot - toCall);
   const bluffPriceAtPot = bluffPrice(s.pot * 0.75, s.pot); // 3/4 pot is default semi-bluff size
-  const mdfFacing = minDefenseFrequency(toCall, s.pot);
+  const mdfFacing = minDefenseFrequency(toCall, potBeforeBet);
   const commitment = commitmentTier(s.pot > 0 ? hero.stack / s.pot : 0);
 
   return {

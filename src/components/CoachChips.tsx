@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { HeroAnalysis } from '../analysis';
-import { pct, money } from '../analysis';
+import { pct, money, cardLabel } from '../analysis';
 import { streetOf } from '../engine/types';
 
 export interface CoachChipsProps {
@@ -117,6 +117,24 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                     <li key={r}>{r}</li>
                   ))}
                 </ul>
+
+                {/* The chart neighbours, seen every single hand: this is how the
+                    169-hand order gets learned without sitting down to memorise it. */}
+                <div className="coach-ladder" aria-label="Neighbouring hands in the chart">
+                  <span className="coach-ladder-caption">Stronger</span>
+                  {shape.better.map((h) => (
+                    <span key={h} className="coach-ladder-hand">
+                      {h}
+                    </span>
+                  ))}
+                  <span className="coach-ladder-hand coach-ladder-you">{shape.name}</span>
+                  {shape.worse.map((h) => (
+                    <span key={h} className="coach-ladder-hand">
+                      {h}
+                    </span>
+                  ))}
+                  <span className="coach-ladder-caption">Weaker</span>
+                </div>
                 <div className="coach-popover-line coach-popover-table">
                   At the table: "{tier.label}"
                 </div>
@@ -142,6 +160,24 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                 {analysis.cardsToCome} card{analysis.cardsToCome === 1 ? '' : 's'} to come, so each
                 out is worth about {multiplier}%.
               </div>
+              {/* Name the cards. "9 outs" is a number to trust; the nine cards
+                  are a pattern that shows up again on the next flush draw. */}
+              {analysis.outs.length > 0 && (
+                <div className="coach-ladder" aria-label="The cards that win it">
+                  {analysis.outs.map((c) => {
+                    const l = cardLabel(c);
+                    return (
+                      <span
+                        key={c}
+                        className={`coach-ladder-hand ${l.red ? 'coach-out-red' : 'coach-out-black'}`}
+                      >
+                        {l.rank}
+                        {l.suit}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
               <div className="coach-popover-line coach-popover-table">
                 At the table: "I have {analysis.outs.length} outs"
               </div>
@@ -180,7 +216,10 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
         }
 
         // Flop, Turn, River: toCall, ratio, break-even %
-        const ratio = state.pot > 0 ? toCall / state.pot : 0;
+        // The bet is already in state.pot, so measure it against what it was
+        // bet into — otherwise a pot-sized bet reads as half pot.
+        const potBeforeBet = Math.max(0, state.pot - toCall);
+        const ratio = potBeforeBet > 0 ? toCall / potBeforeBet : 0;
         const odds = analysis.potOdds.required;
         return {
           value: pct(odds),
@@ -190,8 +229,15 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               <div className="coach-popover-line">
                 <b>Call: {money(toCall)}</b>
               </div>
-              <div className="coach-popover-line">Pot odds: {pct(odds)}</div>
-              <div className="coach-popover-line">Pot ratio: 1:{(ratio > 0 ? 1 / ratio : 0).toFixed(1)}</div>
+              <div className="coach-popover-line">
+                {money(toCall)} ÷ ({money(state.pot)} pot + {money(toCall)}) = {pct(odds)} — the
+                share of the final pot your call buys.
+              </div>
+              <div className="coach-popover-line">
+                You have to win this about 1 hand in{' '}
+                {odds > 0 ? Math.round(1 / odds) : '—'} to break even. They are betting{' '}
+                {ratio > 0 ? `${Math.round(ratio * 100)}%` : '—'} of the pot.
+              </div>
               <div className="coach-popover-table">
                 At the table: "Price is {pct(odds)}"
               </div>
@@ -243,7 +289,12 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                   <b>Defend {pct(analysis.mdfFacing)}</b> if they bet
                 </div>
                 <div className="coach-popover-line">
-                  Minimum frequency to make them indifferent to bluffing
+                  Pot ÷ (pot + bet) = {pct(analysis.mdfFacing)}. Fold more often than{' '}
+                  {pct(1 - analysis.mdfFacing)} and their bluff prints money with any two cards.
+                </div>
+                <div className="coach-popover-line">
+                  It applies to your whole range, not this hand: keep roughly{' '}
+                  {pct(analysis.mdfFacing)} of the hands you would have here, strongest first.
                 </div>
                 <div className="coach-popover-table">
                   At the table: "Defend {pct(analysis.mdfFacing)}"
