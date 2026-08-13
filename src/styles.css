@@ -1058,6 +1058,39 @@ html, body {
   font-weight: 800;
 }
 
+/* One line of orientation above the grid: the matrix is meaningless until you
+   know the lit cells are the exact hands the win-odds number is measured on. */
+.range-lede {
+  margin: 0 0 10px 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+}
+
+.outs-note {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
+}
+
+/* Engine labels are lowercase ("raise to 12"); sentence case reads better in
+   the sheet without rewriting the labels the EV code matches on. */
+.ev-bar-label {
+  text-transform: capitalize;
+}
+
+.coach-popover-reasons {
+  margin: 2px 0 0 0;
+  padding-left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-dim, rgba(255, 255, 255, 0.62));
+}
+
 .range-grid {
   display: grid;
   grid-template-columns: repeat(13, 1fr);

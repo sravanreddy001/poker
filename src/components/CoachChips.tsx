@@ -96,17 +96,27 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               popover: <div className="coach-popover-text">Hand tier unknown.</div>,
             };
           }
+          const shape = analysis.shape;
           return {
             value: tier.label.split(' ')[0],
             state: liveAnchors.has('CARDS') ? 'live' : 'idle',
             popover: (
               <div className="coach-popover-content">
                 <div className="coach-popover-line">
-                  <b>{tier.label}</b>
+                  <b>
+                    {shape.name} — {tier.label}
+                  </b>
                 </div>
                 <div className="coach-popover-line">
-                  Read straight off a starting-hand chart — the top {tier.topPct}% of hands.
+                  {tier.tier === 'trash'
+                    ? `Ranked ${shape.rank} of ${shape.of} starting hands — below the top 35%, which is the widest range worth opening.`
+                    : `Ranked ${shape.rank} of ${shape.of} starting hands — inside the top ${tier.topPct}%.`}
                 </div>
+                <ul className="coach-popover-reasons">
+                  {shape.reasons.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
                 <div className="coach-popover-line coach-popover-table">
                   At the table: "{tier.label}"
                 </div>
@@ -280,7 +290,11 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                 <div className="coach-popover-line">
                   <b>SPR after call: {sprAfterCall.toFixed(2)}</b>
                 </div>
-                <div className="coach-popover-line">Stack depth postflop</div>
+                <div className="coach-popover-line">
+                  SPR is stack ÷ pot — how many more pot-sized bets you still have behind. Low
+                  means one big bet gets it all in; high means there is room to be pushed off a
+                  hand.
+                </div>
                 <div className="coach-popover-table">
                   At the table: "If called, stack-to-pot is {sprAfterCall.toFixed(1)}"
                 </div>
@@ -300,7 +314,10 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               <div className="coach-popover-line">
                 <b>{commitment.label}</b>
               </div>
-              <div className="coach-popover-line">SPR: {spr.toFixed(2)}</div>
+              <div className="coach-popover-line">
+                Stack {money(analysis.spr * state.pot)} ÷ pot {money(state.pot)} ={' '}
+                {spr.toFixed(2)} — how many more pot-sized bets you have behind.
+              </div>
               <div className="coach-popover-line">{commitment.note}</div>
               <div className="coach-popover-table">
                 At the table: "{commitment.label}"
@@ -365,7 +382,7 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
         >
           <div className="coach-popover-head">
             <span className="coach-popover-anchor" style={{ background: chipHues[openPopover] }} />
-            {openPopover}
+            {labelOf(openPopover)}
             <button
               type="button"
               className="coach-popover-close"

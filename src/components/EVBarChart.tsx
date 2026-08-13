@@ -49,11 +49,11 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
     <div className="ev-barchart-card">
       <div className="ev-barchart-header">
         <span className="ev-barchart-title" title={DEFINITIONS.ev}>
-          Action Expected Profit ($ EV)
+          What each action is worth
         </span>
         {!revealed ? (
           <button type="button" className="reveal-btn" onClick={onReveal}>
-            🔓 Reveal EV Values (Logged)
+            🔓 Reveal $
           </button>
         ) : (
           <span className="ev-barchart-unit">(in Dollars)</span>
@@ -98,16 +98,24 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
       {/* Educational Definition Card */}
       <div className="learning-card">
         <div className="learning-card-header">
-          <span>🎯 Why {bestOption.label}?</span>
+          <span>💡 Do this yourself</span>
         </div>
         <div className="learning-card-body">
-          <b>Optimal Action</b>: <b>{bestOption.label}</b> yields the highest expected profit ({money(bestOption.ev, { sign: true })}).
-          {sizingNote && (
-            <>
-              <br />
-              <b>Sizing Logic</b>: {sizingNote}
-            </>
+          <p style={{ margin: '0 0 6px 0' }}>
+            Each bar is one line's average profit per dollar risked, over many identical spots.
+            Fold is always {money(0)} — it is the line everything else has to beat.
+          </p>
+          {toCall > 0 && (
+            <p style={{ margin: '0 0 6px 0' }}>
+              <b>Calling</b>: {Math.round(winOdds * 100)}% × {money(pot)} won −{' '}
+              {100 - Math.round(winOdds * 100)}% × {money(toCall)} lost ={' '}
+              <b>{money(potOddsEvOfCall, { sign: true })}</b>.
+            </p>
           )}
+          <p style={{ margin: 0 }}>
+            <b>Best here: {bestOption.label}</b> at {money(bestOption.ev, { sign: true })}.
+            {sizingNote ? ` ${sizingNote}` : ''}
+          </p>
         </div>
       </div>
     </div>

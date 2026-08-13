@@ -1,7 +1,7 @@
 import { Card, rankOf, suitOf } from './engine/cards';
 import { countOuts, ruleOf42, tableEquity, EquityMethod } from './engine/equity';
 import { evaluateSizes, potOddsVerdict, EvOption, bluffPrice, minDefenseFrequency, commitmentTier } from './engine/ev';
-import { rangeTopPercent, Combo, tierOf, HandTier } from './engine/ranges';
+import { rangeTopPercent, Combo, tierOf, handShape, HandShape, HandTier } from './engine/ranges';
 import { makeRng } from './engine/rng';
 import { DEFAULT_BOT } from './engine/bot';
 import type { HandState } from './engine/game';
@@ -29,6 +29,8 @@ export interface HeroAnalysis {
   mdfFacing: number;
   commitment: { tier: 'committed' | 'shallow' | 'medium' | 'deep'; label: string; note: string };
   preflopTier: { tier: HandTier; label: string; topPct: number } | null;
+  /** Why the starting hand rates where it does — shown behind the Hand chip. */
+  shape: HandShape;
 }
 
 export const DEFINITIONS = {
@@ -226,6 +228,7 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
     mdfFacing,
     commitment,
     preflopTier,
+    shape: handShape(hole),
   };
 }
 

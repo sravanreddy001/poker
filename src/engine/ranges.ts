@@ -82,6 +82,56 @@ export function removeDead(r: Range, dead: Card[]): Range {
  * Preflop tier by membership in top-N% opening ranges.
  * Boundaries: premium ≤ 3%, strong ≤ 10%, speculative ≤ 20%, marginal ≤ 35%, else trash.
  */
+export interface HandShape {
+  /** Canonical name, e.g. "94o". */
+  name: string;
+  /** 1 = best starting hand. */
+  rank: number;
+  /** Always 169 — every distinct starting hand. */
+  of: number;
+  /** Why the hand sits where it does, in the terms a player uses at the table. */
+  reasons: string[];
+}
+
+/**
+ * The reasons behind a hand's tier. A label like "Trash" only teaches once;
+ * the properties that produced it — pair, suits, connectedness, high cards —
+ * are what a player can look for on the next hand.
+ */
+export function handShape(combo: Combo): HandShape {
+  const name = canonicalName(combo[0], combo[1]);
+  const hi = Math.max(rankOf(combo[0]), rankOf(combo[1]));
+  const lo = Math.min(rankOf(combo[0]), rankOf(combo[1]));
+  const suited = suitOf(combo[0]) === suitOf(combo[1]);
+  const gap = hi - lo - 1;
+  const reasons: string[] = [];
+
+  if (hi === lo) {
+    reasons.push('Pocket pair — already made, and flops a set about 1 in 8 times.');
+  } else {
+    reasons.push(
+      suited
+        ? 'Suited — a flush draw is live.'
+        : 'Offsuit — no flush to draw to.',
+    );
+    if (gap === 0) reasons.push('Connected — straights come from both ends.');
+    else if (gap <= 2) reasons.push(`${gap}-gapper — a straight needs the gap filled.`);
+    else reasons.push('Disconnected — no straight without running cards.');
+
+    // Ten and above: the cards that make top pair worth playing for.
+    const broadway = [hi, lo].filter((r) => r >= 8).length;
+    reasons.push(
+      broadway === 2
+        ? 'Two Broadway cards — top pair here is usually the best pair.'
+        : broadway === 1
+          ? 'One Broadway card — the other card pairs into second best.'
+          : 'No Broadway card — pairing it still loses to a bigger pair.',
+    );
+  }
+
+  return { name, rank: HAND_ORDER.indexOf(name) + 1, of: HAND_ORDER.length, reasons };
+}
+
 export function tierOf(combo: Combo): { tier: HandTier; label: string; topPct: number } {
   const name = canonicalName(combo[0], combo[1]);
 
