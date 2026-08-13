@@ -1,15 +1,6 @@
 import { Combo } from './engine/ranges';
 import { fullDeck } from './engine/cards';
 import { evaluate } from './engine/evaluator';
-import { makeRng, shuffled } from './engine/rng';
-
-/**
- * Runouts sampled when the board is too incomplete to enumerate. A preflop
- * all-in leaves C(45,5) ≈ 1.2M runouts, too slow to run between hands; 20k
- * samples hold the equity estimate to a few tenths of a percent, far finer
- * than the chip amounts it gets multiplied by.
- */
-const SAMPLED_RUNOUTS = 20000;
 
 /**
  * Computes the all-in adjusted EV result for a hand where the hero went all-in
@@ -88,20 +79,10 @@ export function computeAllInAdjustedResult(
       }
     }
   } else {
-    // 3+ cards to come (a preflop all-in, the most common cooler of all).
-    // Exhaustive enumeration is far too slow here, so sample runouts instead.
-    // The seed is derived from the cards themselves, so the same spot always
-    // yields the same number — replaying a hand never shifts its adjustment.
-    const seed = [...heroHole, ...board, ...villainHoles.flat()].reduce(
-      (acc, c) => (acc * 31 + c) >>> 0,
-      villainHoles.length + 17,
-    );
-    const rng = makeRng(seed);
-    for (let s = 0; s < SAMPLED_RUNOUTS; s++) {
-      const drawn = shuffled(deck, rng).slice(0, toCome);
-      heroWinShare += shareOf([...board, ...drawn]);
-      runoutCount++;
-    }
+    // 3+ cards to come (a preflop all-in). Enumerating C(45,5) runouts between
+    // hands is too slow, and estimating it by sampling would put a number on
+    // screen that nobody can check by hand. Book the actual result instead.
+    return null;
   }
 
   const heroEquity = runoutCount > 0 ? heroWinShare / runoutCount : 0;

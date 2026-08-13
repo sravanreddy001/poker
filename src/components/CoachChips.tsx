@@ -98,14 +98,16 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
             };
           }
           return {
-            value: `${tier.label.split(' ')[0]} (${tier.topPct}%)`,
+            value: tier.label.split(' ')[0],
             state: liveAnchors.has('CARDS') ? 'live' : 'idle',
             popover: (
               <div className="coach-popover-content">
                 <div className="coach-popover-line">
                   <b>{tier.label}</b>
                 </div>
-                <div className="coach-popover-line">Your hand strength preflop.</div>
+                <div className="coach-popover-line">
+                  Read straight off a starting-hand chart — the top {tier.topPct}% of hands.
+                </div>
                 <div className="coach-popover-line coach-popover-table">
                   At the table: "{tier.label}"
                 </div>
@@ -118,14 +120,19 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
         const multiplier = analysis.cardsToCome === 2 ? 4 : 2;
         const estimate = analysis.ruleOfNEstimate ? pct(analysis.ruleOfNEstimate) : '—';
         return {
-          value: `${analysis.outs.length} outs × ${multiplier}`,
+          value: `${analysis.outs.length} outs`,
           state: liveAnchors.has('CARDS') ? 'live' : 'idle',
           popover: (
             <div className="coach-popover-content">
               <div className="coach-popover-line">
-                <b>{analysis.outs.length} outs</b> need {estimate}
+                <b>
+                  {analysis.outs.length} outs × {multiplier} = {estimate}
+                </b>
               </div>
-              <div className="coach-popover-line">Cards to come: {analysis.cardsToCome}</div>
+              <div className="coach-popover-line">
+                {analysis.cardsToCome} card{analysis.cardsToCome === 1 ? '' : 's'} to come, so each
+                out is worth about {multiplier}%.
+              </div>
               <div className="coach-popover-line coach-popover-table">
                 At the table: "I have {analysis.outs.length} outs"
               </div>
@@ -167,7 +174,7 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
         const ratio = state.pot > 0 ? toCall / state.pot : 0;
         const odds = analysis.potOdds.required;
         return {
-          value: `${money(toCall)} · ${pct(odds)}`,
+          value: pct(odds),
           state: liveAnchors.has('POT') ? 'live' : 'idle',
           popover: (
             <div className="coach-popover-content">

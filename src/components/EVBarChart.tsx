@@ -10,7 +10,7 @@ export interface EVBarChartProps {
   revealed: boolean;
   onReveal: () => void;
   pot?: number;
-  realizedEquity?: number;
+  winOdds?: number;
 }
 
 export const EVBarChart: React.FC<EVBarChartProps> = ({
@@ -21,7 +21,7 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
   revealed,
   onReveal,
   pot = 10,
-  realizedEquity = 0.5,
+  winOdds = 0.5,
 }) => {
   const candidates: { label: string; ev: number; amount?: number }[] = [];
 
@@ -43,7 +43,7 @@ export const EVBarChart: React.FC<EVBarChartProps> = ({
   const bestOption = candidates[0];
 
   const bestAmount = bestOption.amount ?? 0;
-  const sizingNote = bestAmount > 0 ? getSizingRationale(bestAmount, pot, realizedEquity) : '';
+  const sizingNote = bestAmount > 0 ? getSizingRationale(bestAmount, pot, winOdds) : '';
 
   return (
     <div className="ev-barchart-card">

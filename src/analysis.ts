@@ -1,6 +1,5 @@
 import { Card, rankOf, suitOf } from './engine/cards';
-import { equityVsRange, countOuts } from './engine/equity';
-import { realizedEquity } from './engine/realization';
+import { countOuts, ruleOf42, tableEquity, EquityMethod } from './engine/equity';
 import { evaluateSizes, potOddsVerdict, EvOption, bluffPrice, minDefenseFrequency, commitmentTier } from './engine/ev';
 import { rangeTopPercent, Combo, tierOf, HandTier } from './engine/ranges';
 import { makeRng } from './engine/rng';
@@ -12,10 +11,12 @@ import { streetOf } from './engine/types';
 export const VILLAIN_RANGE_PCT = 0.25;
 
 export interface HeroAnalysis {
-  rawEquity: number;
-  realizedEquity: number;
-  realizationFactor: number;
-  exact: boolean;
+  /** Win odds 0..1 — the single number the trainer shows and acts on. */
+  winOdds: number;
+  /** Which hand-checkable calculation produced `winOdds`. */
+  winOddsMethod: EquityMethod;
+  /** One line of arithmetic the player can redo at the table. */
+  winOddsWorking: string;
   outs: Card[];
   ruleOfNEstimate: number | null;
   cardsToCome: number;
@@ -31,12 +32,8 @@ export interface HeroAnalysis {
 }
 
 export const DEFINITIONS = {
-  rawEquity:
-    'Showdown Win Odds (Raw Equity): If all remaining community cards were dealt right now with NO further betting, this is how often your cards would win the pot at showdown (e.g. winning 58 out of 100 card runouts = 58%).',
-  realizedEquity:
-    'Playable Win Odds (Realized Equity): Your realistic chance of winning the pot when factoring in future betting. Benchmark Tiers: 🔴 Weak (< 35%), 🟡 Medium (35%-55%), 🟢 Strong (55%+). An action is profitable when Playable Equity exceeds Required Pot Odds.',
-  realizationFactor:
-    'Position Retention (Realization Factor): Realized Equity ÷ Raw Equity. Measures what percentage of your raw card strength you actually get to claim based on table position and opponent betting.',
+  winOdds:
+    'Win Odds: How often you win this pot, worked out the way you would at the table — preflop from your starting-hand tier, after the flop either from the share of the opponent’s hands you already beat or from your outs × 4 (flop) / × 2 (turn). Nothing is simulated: every number can be recounted by hand. 🔴 Weak (< 35%), 🟡 Medium (35%–55%), 🟢 Strong (55%+). An action is profitable when Win Odds exceed the pot-odds threshold.',
   potOdds:
     'Break-Even Call Odds (Pot Odds): The ratio of the call price to the total pot. Tells you the minimum win rate required to make calling profitable long-term.',
   ev:
@@ -56,8 +53,7 @@ export const DEFINITIONS = {
 export function getOptimalActionRationale(opts: {
   actionLabel: string;
   evVal: number;
-  realizedEquity: number;
-  rawEquity: number;
+  winOdds: number;
   toCall: number;
   pot?: number;
   potOddsRequired?: number;
@@ -65,7 +61,7 @@ export function getOptimalActionRationale(opts: {
   spr?: number;
 }): string {
   const labelLower = opts.actionLabel.toLowerCase();
-  const relPct = Math.round(opts.realizedEquity * 100);
+  const relPct = Math.round(opts.winOdds * 100);
   const reqPct = opts.potOddsRequired ? Math.round(opts.potOddsRequired * 100) : 0;
 
   if (labelLower.includes('all-in') || labelLower.includes('all in') || (opts.spr !== undefined && opts.spr < 1.5)) {
@@ -77,11 +73,11 @@ export function getOptimalActionRationale(opts: {
   }
 
   if (labelLower.includes('fold')) {
-    return `Weak Playable Equity (${relPct}%): Facing this bet, your win odds do not clear the required pot odds threshold. Calling surrenders dollar EV.`;
+    return `Weak Win Odds (${relPct}%): Facing this bet, your win odds do not clear the required pot odds threshold. Calling surrenders dollar EV.`;
   }
 
   if (labelLower.includes('call')) {
-    return `Profitable Call (+EV): Pot odds require ${reqPct}% equity to break even. Your ${relPct}% playable equity beats the threshold by +${Math.max(0, relPct - reqPct)}%. Calling is superior to raising here because calling realizes your equity cheaply, whereas raising over-bloats the pot with a speculative hand.`;
+    return `Profitable Call (+EV): Pot odds require ${reqPct}% equity to break even. Your ${relPct}% win odds beat the threshold by +${Math.max(0, relPct - reqPct)}%. Calling is superior to raising here because calling realizes your equity cheaply, whereas raising over-bloats the pot with a speculative hand.`;
   }
 
   if (labelLower.includes('check')) {
@@ -108,10 +104,10 @@ export function getOptimalActionRationale(opts: {
   return `Highest Expected Profit (${money(opts.evVal, { sign: true })}): Maximizes long-term profit against opponent's action frequencies.`;
 }
 
-export function getSizingRationale(amount: number, pot: number, realizedEquity: number): string {
+export function getSizingRationale(amount: number, pot: number, winOdds: number): string {
   if (amount <= 0 || pot <= 0) return '';
   const pctOfPot = Math.round((amount / pot) * 100);
-  const relPct = Math.round(realizedEquity * 100);
+  const relPct = Math.round(winOdds * 100);
 
   if (pctOfPot >= 150) {
     return `2x Pot Overbet (${pctOfPot}% Pot): The mathematical EV sweet spot! Smaller bets (1x pot) leave money on the table against opponent's catchers, while larger bets (4x pot) force opponent to fold everything except hands that beat you. 2x pot maximizes [Call Amount × Calling Frequency].`;
@@ -174,8 +170,6 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
   const villainRange = rangeTopPercent(VILLAIN_RANGE_PCT);
   const toCall = Math.max(0, s.currentBet - hero.committed);
 
-  const raw = equityVsRange(hole, s.board, villainRange, rng, 4000);
-
   const input = {
     hole,
     board: s.board,
@@ -186,15 +180,28 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
     villainRange,
   };
 
-  const realization = realizedEquity(input, rng, 60);
   const { outs } = countOuts(hole, s.board, villainRange);
 
   // The 2/4 rule: outs x 4 with two cards to come, outs x 2 with one.
   const cardsToCome = 5 - s.board.length;
   const ruleOfNEstimate =
-    outs.length > 0 && cardsToCome >= 1 && cardsToCome <= 2
-      ? Math.min(1, (outs.length * (cardsToCome === 2 ? 4 : 2)) / 100)
-      : null;
+    outs.length > 0 && cardsToCome >= 1 && cardsToCome <= 2 ? ruleOf42(outs.length, cardsToCome) : null;
+
+  // Preflop tier only when board is empty
+  const preflopTier = s.board.length === 0 ? tierOf(hole) : null;
+
+  const win = tableEquity(hole, s.board, villainRange);
+  const winPct = Math.round(win.equity * 100);
+  const winOddsWorking =
+    win.method === 'tier'
+      ? `${preflopTier?.label ?? 'Starting hand'} → about ${winPct}% against a ${Math.round(
+          VILLAIN_RANGE_PCT * 100,
+        )}% opening range.`
+      : win.method === 'outs'
+        ? `${win.outs} outs × ${cardsToCome >= 2 ? 4 : 2} = ${winPct}% by the ${
+            cardsToCome >= 2 ? 'river' : 'river card'
+          }.`
+        : `Your hand already beats ${winPct}% of the hands they can hold on this board.`;
 
   const advice = evaluateSizes({ ...input, toCall }, rng);
 
@@ -203,19 +210,15 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
   const mdfFacing = minDefenseFrequency(toCall, s.pot);
   const commitment = commitmentTier(s.pot > 0 ? hero.stack / s.pot : 0);
 
-  // Preflop tier only when board is empty
-  const preflopTier = s.board.length === 0 ? tierOf(hole) : null;
-
   return {
-    rawEquity: raw.equity,
-    realizedEquity: realization.realized,
-    realizationFactor: realization.factor,
-    exact: raw.exact,
+    winOdds: win.equity,
+    winOddsMethod: win.method,
+    winOddsWorking,
     outs,
     ruleOfNEstimate,
     cardsToCome,
     toCall,
-    potOdds: potOddsVerdict(toCall, s.pot, realization.realized),
+    potOdds: potOddsVerdict(toCall, s.pot, win.equity),
     advice,
     spr: s.pot > 0 ? hero.stack / s.pot : 0,
     bluffFreq: DEFAULT_BOT.bluffFreq[streetOf(s.board.length)],

@@ -14,12 +14,12 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onCl
       desc: 'An "Out" is any unseen card remaining in the deck that completes your drawing hand into a winner:\n• 💧 Flush Draw (9 Outs): You hold 4 cards of one suit (e.g. 4 Hearts). 13 total hearts in deck minus 4 visible = 9 unseen hearts remaining. (9 × 4 = 36% win chance on Flop).\n• 🛣️ Open-Ended Straight Draw (8 Outs): 4 consecutive cards in a row (e.g. 5-6-7-8). Completed on EITHER END by 4 Nines or 4 Fours. (4 + 4 = 8 outs = 32% win chance on Flop).\n• 🎯 Gutshot Straight Draw (4 Outs): 4 cards with a missing gap in the middle (e.g. 4-5-[gap 6]-7-8). Only 4 Sixes in the deck fill the hole (4 outs = 16% win chance on Flop).\n• 🌟 Monster Combo Draw (15 Outs): Flush Draw + Open-Ended Straight Draw = 9 + 6 = 15 outs (15 × 4 = 60% win chance right on the Flop!).',
     },
     {
-      title: '🎲 How the Engine Calculates Playable Odds (Monte Carlo Engine)',
-      desc: 'Behind the scenes, Playable Odds (Realized Equity) are calculated in 3 steps:\n1. Raw Equity Runouts: The engine runs 2,000 random card deals comparing your hand against opponent\'s estimated starting range to find your pure showdown win % (e.g. 45% Raw Equity).\n2. Postflop Decision Simulation: The engine runs 400 full postflop hand playouts. In each playout, board cards are dealt and the GTO bot engine simulates opponent bets. If opponent bets aggressively out of position, your hand evaluates whether to call or fold early.\n3. Realized Winnings Formula: Playable Odds % = (Net Chips Collected Across All 400 Playouts ÷ Initial Pot). If you fold early in 60 out of 400 playouts, your 45% Raw Equity realizes down to 38% Playable Odds!',
+      title: '🧮 Where the Win Odds Number Comes From (No Simulation)',
+      desc: 'Nothing on screen is simulated. The one Win Odds number is produced by whichever of three counts fits the street, and you can redo every one of them at the table:\n1. Preflop — Starting-Hand Tier: your two cards are looked up in a top-N% chart (Premium top 3%, Strong top 10%, Speculative top 20%, Marginal top 35%). Each tier carries a fixed win rate against a typical opening range.\n2. Ahead after the flop — Hands You Already Beat: your made hand is compared against every hand the opponent can still hold. "I beat 62% of their hands" is the number, counted, not estimated.\n3. Behind after the flop — Rule of 4/2: count your outs, multiply by 4 on the flop or 2 on the turn.',
     },
     {
-      title: '🧮 Playable Odds Math Terminology Breakdown (Plain English)',
-      desc: '• 1. Raw Showdown Equity (%): Your pure card strength if all board cards were dealt right now with NO future betting.\n• 2. Position Retention Factor (%): In real poker, future bets happen. Acting in position (BTN) lets you claim ~100% of your raw equity. Acting out of position (SB/UTG) forces you to fold early ~15%–20% of the time before seeing the river.\n• 3. Playable Odds Formula: Raw Equity % × Position Retention % = Playable Odds %.\n  (Example: 45% Raw Equity × 85% Retention = 38% Playable Odds).\n• 4. Break-Even Call Odds (Pot Odds %): Call Price ÷ (Total Pot + Call Price). Minimum win rate required to make calling break-even.\n• 5. Profit Margin (+EV): When your Playable Odds (38%) exceed Break-Even Call Odds (15%), calling makes long-term dollar profit (+23% +EV)!',
+      title: '🧮 The Two Numbers That Decide Every Call (Plain English)',
+      desc: '• 1. Win Odds (%): how often you win this pot — from your hand tier preflop, from the share of their range you beat when ahead, or from outs × 4 / × 2 when drawing.\n• 2. Break-Even Call Odds (%): Call Price ÷ (Total Pot + Call Price). The minimum win rate that makes calling break even.\n• 3. The Verdict: Win Odds above Break-Even means calling profits; below means folding does. Example: 9 outs × 4 = 36% against a $10 call into a $30 pot ($10 ÷ $40 = 25%) is an 11-point edge — call.',
     },
     {
       title: '📍 6-Max Table Positions & Strategy Guide',
@@ -34,12 +34,12 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onCl
       desc: 'Expected Value ($ EV) follows a curve: EV = [Call Amount × Calling Frequency].\n• Why NOT Lower (1x Pot)? Betting smaller leaves dollar profit on the table. Opponent would still call 2x pot with their strong catchers.\n• Why NOT Higher (4x Pot)? Betting 4x pot exceeds opponent\'s elastic calling threshold, forcing them to fold everything except hands that beat you (making you get called only when losing).\n• The 2x Sweet Spot: Maximizes total dollar extraction (+ $4.14 EV) while keeping opponent\'s catchers in the pot!',
     },
     {
-      title: '🧮 How to Calculate Playable Odds & Pot Odds Yourself (5 Steps)',
-      desc: '1. Count Outs: Flush draw = 9 outs, Open-Ended Straight = 8 outs, Gutshot = 4 outs.\n2. Rule of 4/2 (Raw Equity): Multiply outs by 4 on Flop or by 2 on Turn. (e.g. 9 outs × 4 = 36% Raw Equity).\n3. Position Realization (Playable Equity): Multiply by 1.0 if In Position (36%) or by 0.8 if Out of Position (29%).\n4. Required Pot Odds %: Call ÷ (Pot + Call). (e.g. $10 call into $30 pot = $10/$40 = 25%).\n5. Decision Verdict: If Playable Equity (29%) > Pot Odds (25%), CALL IS PROFITABLE (+EV)!',
+      title: '🧮 How to Calculate Win Odds & Pot Odds Yourself (4 Steps)',
+      desc: '1. Count Outs: Flush draw = 9 outs, Open-Ended Straight = 8 outs, Gutshot = 4 outs.\n2. Rule of 4/2 (Win Odds): Multiply outs by 4 on the Flop or by 2 on the Turn. (e.g. 9 outs × 4 = 36%).\n3. Required Pot Odds %: Call ÷ (Pot + Call). (e.g. $10 call into $30 pot = $10/$40 = 25%).\n4. Decision Verdict: If Win Odds (36%) > Pot Odds (25%), CALLING IS PROFITABLE (+EV) by 11 points.',
     },
     {
-      title: '📊 Playable Equity & Benchmark Tiers',
-      desc: 'Your realistic chance of winning the pot when factoring in future betting rounds:\n• 🔴 Weak Equity (< 35%): Unimproved high cards or weak pairs out of position. Requires cheap pot odds or folding.\n• 🟡 Medium Equity (35% – 55%): Coin-flip hands, middle pair, or strong draws. Calling is +EV when equity exceeds required pot odds.\n• 🟢 Strong Equity (55%+): Dominant top pairs, sets, straights, and flushes. Primary range for value betting and raising.',
+      title: '📊 Win Odds Benchmark Tiers',
+      desc: 'How to read the Win Odds number at a glance:\n• 🔴 Weak Equity (< 35%): Unimproved high cards or weak pairs out of position. Requires cheap pot odds or folding.\n• 🟡 Medium Equity (35% – 55%): Coin-flip hands, middle pair, or strong draws. Calling is +EV when equity exceeds required pot odds.\n• 🟢 Strong Equity (55%+): Dominant top pairs, sets, straights, and flushes. Primary range for value betting and raising.',
     },
   ];
 

@@ -1,97 +1,95 @@
 import React from 'react';
-import { pct, DEFINITIONS } from '../analysis';
+import { DEFINITIONS } from '../analysis';
+import type { EquityMethod } from '../engine/equity';
 
 export interface EquityBarProps {
-  rawEquity: number;
-  realizedEquity: number;
-  realizationFactor: number;
+  /** Win odds 0..1, counted rather than simulated. */
+  winOdds: number;
+  /** The arithmetic behind `winOdds`, in one line. */
+  winOddsWorking: string;
+  winOddsMethod: EquityMethod;
   breakEvenOdds?: number;
 }
 
+const METHOD_TITLE: Record<EquityMethod, string> = {
+  tier: 'Starting-hand chart',
+  showdown: 'Hands you already beat',
+  outs: 'Rule of 4 and 2',
+};
+
 export const EquityBar: React.FC<EquityBarProps> = ({
-  rawEquity,
-  realizedEquity,
-  realizationFactor,
+  winOdds,
+  winOddsWorking,
+  winOddsMethod,
   breakEvenOdds,
 }) => {
-  const rawPct = Math.min(100, Math.max(0, Math.round(rawEquity * 100)));
-  const realizedPct = Math.min(100, Math.max(0, Math.round(realizedEquity * 100)));
+  const winPct = Math.min(100, Math.max(0, Math.round(winOdds * 100)));
   const breakEvenPct =
     breakEvenOdds !== undefined ? Math.min(100, Math.max(0, Math.round(breakEvenOdds * 100))) : null;
-
-  const foldLossPct = Math.max(0, rawPct - realizedPct);
+  const clears = breakEvenPct === null || winPct >= breakEvenPct;
 
   return (
     <div className="equity-bar-card">
       <div className="equity-bar-header">
-        <span className="equity-bar-title" title={DEFINITIONS.realizedEquity}>
-          Win Odds & Equity Breakdown
+        <span className="equity-bar-title" title={DEFINITIONS.winOdds}>
+          Win Odds
         </span>
-        <span className="equity-factor-badge" title={DEFINITIONS.realizationFactor}>
-          Position Retention: {pct(realizationFactor)}
-        </span>
+        <span className="equity-factor-badge">{METHOD_TITLE[winOddsMethod]}</span>
       </div>
 
       <div className="equity-bar-track">
-        {/* Raw Equity Bar (Sky Blue) */}
-        <div
-          className="equity-fill raw-fill"
-          style={{ width: `${rawPct}%` }}
-          title={DEFINITIONS.rawEquity}
-        />
-        {/* Realized Equity Bar (Emerald Green overlay) */}
-        <div
-          className="equity-fill realized-fill"
-          style={{ width: `${realizedPct}%` }}
-          title={DEFINITIONS.realizedEquity}
-        />
-        {/* Break-even threshold line (Red rule) */}
-        {breakEvenPct !== null && (
+        <div className="equity-fill realized-fill" style={{ width: `${winPct}%` }} />
+        {breakEvenPct !== null && breakEvenPct > 0 && (
           <div
             className="break-even-rule"
             style={{ left: `${breakEvenPct}%` }}
             title={DEFINITIONS.potOdds}
           >
-            <span className="break-even-tag">{breakEvenPct}% BE</span>
+            <span className="break-even-tag">{breakEvenPct}% needed</span>
           </div>
         )}
       </div>
 
       <div className="equity-bar-legend">
-        <div className="legend-item" title={DEFINITIONS.realizedEquity}>
+        <div className="legend-item" title={DEFINITIONS.winOdds}>
           <span className="legend-swatch emerald" />
-          <span>Realized (Playable): <b>{realizedPct}%</b></span>
+          <span>
+            Win odds: <b>{winPct}%</b>
+          </span>
         </div>
-        <div className="legend-item" title={DEFINITIONS.rawEquity}>
-          <span className="legend-swatch sky" />
-          <span>Raw (Showdown): <b>{rawPct}%</b></span>
-        </div>
-        {breakEvenPct !== null && (
+        {breakEvenPct !== null && breakEvenPct > 0 && (
           <div className="legend-item" title={DEFINITIONS.potOdds}>
             <span className="legend-swatch red" />
-            <span>Break-Even Call: <b>{breakEvenPct}%</b></span>
+            <span>
+              Needed to call: <b>{breakEvenPct}%</b>
+            </span>
           </div>
         )}
       </div>
 
-      {/* Expanded Educational Explanation Card */}
       <div className="learning-card">
         <div className="learning-card-header">
-          <span>💡 Clear Definition: Raw vs Realized Equity</span>
+          <span>💡 Do this yourself</span>
         </div>
         <div className="learning-card-body">
           <p style={{ margin: '0 0 6px 0' }}>
-            <b>1. Showdown Win Odds (Raw Equity = {rawPct}%)</b>:<br />
-            If all remaining board cards were dealt right now with <i>NO further betting allowed</i>, your hand wins <b>{rawPct} out of 100</b> times at showdown.
+            <b>1. Your win odds ({winPct}%)</b>:<br />
+            {winOddsWorking}
           </p>
-          <p style={{ margin: '0 0 6px 0' }}>
-            <b>2. Playable Win Odds (Realized Equity = {realizedPct}%)</b>:<br />
-            In real poker, future betting rounds happen. Facing aggressive bets out of position will force you to fold early ~<b>{foldLossPct}%</b> of the time before seeing the river, leaving you with <b>{realizedPct}%</b> actual win odds.
-          </p>
-          <p style={{ margin: 0 }}>
-            <b>3. Position Retention ({pct(realizationFactor)})</b>:<br />
-            Calculated as Realized ÷ Raw ({realizedPct}% / {rawPct}%). Measures how efficiently you can claim your raw win odds based on position.
-          </p>
+          {breakEvenPct !== null && breakEvenPct > 0 && (
+            <>
+              <p style={{ margin: '0 0 6px 0' }}>
+                <b>2. The price ({breakEvenPct}%)</b>:<br />
+                Call ÷ (pot + call). That share of the final pot is what the call costs you, so it is
+                the minimum win rate that breaks even.
+              </p>
+              <p style={{ margin: 0 }}>
+                <b>3. Compare</b>:<br />
+                {winPct}% {clears ? '≥' : '<'} {breakEvenPct}% —{' '}
+                {clears ? 'calling is profitable.' : 'calling loses money over time.'}
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

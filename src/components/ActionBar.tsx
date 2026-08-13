@@ -42,10 +42,10 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 
   const verb = isRaise ? 'Raise to' : 'Bet';
 
-  // Quick Preset Sizing Options
+  // Quick Preset Sizing Options. Min and the sub-half sizes are gone: they
+  // crowded the row without teaching a different decision, and the slider
+  // still reaches every amount between them.
   const presets = [
-    { label: 'Min', amount: minAmount },
-    { label: '1/3 Pot', amount: Math.min(stack, Math.max(minAmount, Math.round(pot / 3))) },
     { label: '1/2 Pot', amount: Math.min(stack, Math.max(minAmount, Math.round(pot / 2))) },
     { label: '3/4 Pot', amount: Math.min(stack, Math.max(minAmount, Math.round((pot * 3) / 4))) },
     { label: 'Pot', amount: Math.min(stack, Math.max(minAmount, Math.round(pot))) },
