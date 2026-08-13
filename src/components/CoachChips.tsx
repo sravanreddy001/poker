@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { HeroAnalysis } from '../analysis';
 import { pct, money, cardLabel } from '../analysis';
 import { streetOf } from '../engine/types';
+import { commitmentTier } from '../engine/ev';
 
 export interface CoachChipsProps {
   analysis: HeroAnalysis | null;
@@ -134,6 +135,13 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                     </span>
                   ))}
                   <span className="coach-ladder-caption">Weaker</span>
+                </div>
+                {/* Trash + "best line: call" reads as a contradiction until you
+                    see that the two chips answer different questions. */}
+                <div className="coach-popover-line">
+                  This tier answers <b>would I open this?</b> — not <b>can I call?</b> A hand down
+                  here is still a call when the price is low enough; check the Price chip before
+                  folding it.
                 </div>
                 <div className="coach-popover-line coach-popover-table">
                   At the table: "{tier.label}"
@@ -332,55 +340,84 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
       }
 
       case 'STACK': {
-        // Preflop: SPR after call, dimmed
-        // Flop+: SPR + commitment tier
-        const spr = analysis.spr;
-        const commitment = analysis.commitment;
+        const stack = analysis.spr * state.pot;
 
-        if (isPreflop) {
-          // After call SPR
-          const callAmount = toCall > 0 ? toCall : 0;
-          const potAfterCall = state.pot + callAmount + callAmount; // both players call
-          const sprAfterCall = (analysis.spr * state.pot - callAmount) / potAfterCall;
-          return {
-            value: `${sprAfterCall.toFixed(1)}:1`,
-            state: 'idle',
-            popover: (
-              <div className="coach-popover-content">
-                <div className="coach-popover-line">
-                  <b>SPR after call: {sprAfterCall.toFixed(2)}</b>
-                </div>
-                <div className="coach-popover-line">
-                  SPR is stack ÷ pot — how many more pot-sized bets you still have behind. Low
-                  means one big bet gets it all in; high means there is room to be pushed off a
-                  hand.
-                </div>
-                <div className="coach-popover-table">
-                  At the table: "If called, stack-to-pot is {sprAfterCall.toFixed(1)}"
-                </div>
-              </div>
-            ),
-          };
-        }
+        // Preflop the pot is about to change, so the number worth knowing is
+        // the one you will be playing the flop with, not the one on screen now.
+        const callAmount = toCall > 0 ? toCall : 0;
+        const potAfterCall = state.pot + callAmount * 2;
+        const spr = isPreflop
+          ? potAfterCall > 0
+            ? (stack - callAmount) / potAfterCall
+            : 0
+          : analysis.spr;
 
-        // Postflop: show tier and SPR
+        // Read the tier off the SPR actually shown, so the band, the note and
+        // the number can never describe different stack depths.
+        const commitment = commitmentTier(spr);
         const tierState =
-          commitment.tier === 'committed' || commitment.tier === 'shallow' ? 'live' : 'idle';
+          !isPreflop && (commitment.tier === 'committed' || commitment.tier === 'shallow')
+            ? 'live'
+            : 'idle';
+
         return {
-          value: `${spr.toFixed(1)}:1`,
+          // One number: SPR is already a ratio to one, so ":1" only adds noise.
+          value: spr.toFixed(1),
           state: tierState,
           popover: (
             <div className="coach-popover-content">
-              <div className="coach-popover-line">
-                <b>{commitment.label}</b>
+              <div className="coach-math">
+                <span className="coach-math-step">Your stack</span>
+                <span className="coach-math-work">{money(stack - callAmount)}</span>
+                <span className="coach-math-out">behind</span>
+
+                <span className="coach-math-step">{isPreflop ? 'Pot if called' : 'Pot now'}</span>
+                <span className="coach-math-work">
+                  {money(isPreflop ? potAfterCall : state.pot)}
+                </span>
+                <span className="coach-math-out">in the middle</span>
+
+                <span className="coach-math-step">Stack ÷ pot</span>
+                <span className="coach-math-work">
+                  {money(stack - callAmount)} ÷ {money(isPreflop ? potAfterCall : state.pot)}
+                </span>
+                <span className="coach-math-out coach-math-answer">{spr.toFixed(1)}</span>
               </div>
+
               <div className="coach-popover-line">
-                Stack {money(analysis.spr * state.pot)} ÷ pot {money(state.pot)} ={' '}
-                {spr.toFixed(2)} — how many more pot-sized bets you have behind.
+                <b>Why it matters:</b> it decides how much hand you need. At a low SPR the money
+                goes in on one pair and there is nothing to fold to. At a high SPR one pair is a
+                small hand — the deep stack behind can bet you off it on every street.
               </div>
-              <div className="coach-popover-line">{commitment.note}</div>
+
+              {/* The same four rungs every hand, so the number stops needing a
+                  lookup and starts reading as a plan. */}
+              <div className="coach-ladder" aria-label="Stack-to-pot ratio bands">
+                {[
+                  { max: 1, label: '<1 all-in' },
+                  { max: 3, label: '1–3 shallow' },
+                  { max: 6, label: '3–6 medium' },
+                  { max: Infinity, label: '6+ deep' },
+                ].map((band, i, bands) => {
+                  const lower = i === 0 ? 0 : bands[i - 1].max;
+                  const here = spr >= lower && spr < band.max;
+                  return (
+                    <span
+                      key={band.label}
+                      className={`coach-ladder-hand ${here ? 'coach-ladder-you' : ''}`}
+                    >
+                      {band.label}
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div className="coach-popover-line">
+                <b>How to read it:</b> {commitment.note}
+              </div>
+
               <div className="coach-popover-table">
-                At the table: "{commitment.label}"
+                At the table: "{isPreflop ? `If called, SPR is ${spr.toFixed(1)}` : commitment.label}"
               </div>
             </div>
           ),
