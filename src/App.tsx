@@ -94,9 +94,12 @@ export default function App() {
   const hero = state.players[0];
   const heroTurn = !state.complete && state.toAct === 0 && !hero.folded;
 
+  // Analysed whenever the hero still has a hand, not only on their turn: the
+  // bottom panel stays mounted while the bots act instead of blinking out and
+  // back, which was shifting the whole layout between every action.
   const analysis: HeroAnalysis | null = useMemo(
-    () => (heroTurn ? analyseSpot(state) : null),
-    [heroTurn, state],
+    () => (!state.complete && !hero.folded && hero.hole ? analyseSpot(state) : null),
+    [state, hero.folded, hero.hole],
   );
 
   useEffect(() => {
@@ -398,7 +401,7 @@ export default function App() {
 
           {/* Every coach number in one labelled row, directly above the peek
               strip — they used to be scattered around the outside of the felt. */}
-          {heroTurn && analysis && (
+          {analysis && (
             <CoachChips
               analysis={analysis}
               state={state}
@@ -408,7 +411,7 @@ export default function App() {
           )}
 
           {/* Peek Strip (Above Action Bar) */}
-          {heroTurn && analysis && (
+          {analysis && (
             <PeekStrip
               winOdds={analysis.winOdds}
               winOddsWorking={analysis.winOddsWorking}
@@ -419,7 +422,7 @@ export default function App() {
           )}
 
           {/* Fixed Action Bar Footer */}
-          {heroTurn && analysis && (
+          {analysis && (
             <ActionBar
               toCall={analysis.toCall}
               pot={state.pot}
@@ -427,11 +430,12 @@ export default function App() {
               bigBlind={state.bigBlind}
               sizeButtons={sizeButtons}
               onAct={act}
+              disabled={!heroTurn}
             />
           )}
 
           {/* Expandable Bottom Sheet */}
-          {heroTurn && analysis && (
+          {analysis && (
             <BottomSheet
               snap={snap}
               onSnapChange={handleSnapChange}

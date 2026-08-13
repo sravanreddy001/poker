@@ -10,6 +10,8 @@ export interface ActionBarProps {
   bigBlind: number;
   sizeButtons: EvOption[];
   onAct: (action: Action, label: string) => void;
+  /** Someone else is acting: the bar holds its place, but nothing can be pressed. */
+  disabled?: boolean;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -19,6 +21,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   bigBlind,
   sizeButtons,
   onAct,
+  disabled = false,
 }) => {
   const isRaise = toCall > 0;
   const minAmount = isRaise ? Math.min(stack, Math.max(toCall * 2, bigBlind * 2)) : Math.min(stack, bigBlind);
@@ -53,7 +56,13 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   ];
 
   return (
-    <div className="action-bar-container extended">
+    <div
+      className={`action-bar-container extended ${disabled ? 'is-waiting' : ''}`}
+      aria-disabled={disabled || undefined}
+      // Keeps the layout identical while the bots act, so nothing shifts under
+      // the cursor and the panel does not blink in and out between hands.
+      inert={disabled}
+    >
       {/* 1. Quick Preset Sizing Pills */}
       <div className="preset-pills-row">
         {presets.map((p) => (

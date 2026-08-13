@@ -34,9 +34,13 @@ export const Seat: React.FC<SeatProps> = ({
         ? 'Thinking...'
         : '';
 
+  // Style read: kept off the badge so the seat shows table facts only, and
+  // surfaced on hover for when you actually want to profile the opponent.
+  const styleNote = player.id === 1 ? 'Bluffs about 30% of the time when checked to' : '';
+
   const ariaLabel = `${name}, stack ${money(player.stack)}${
     player.folded ? ', folded' : isWinner ? ', won' : ''
-  }`;
+  }${styleNote ? `. ${styleNote}` : ''}`;
 
   return (
     <div
@@ -45,6 +49,7 @@ export const Seat: React.FC<SeatProps> = ({
       } ${isHero ? 'hero-seat' : ''}`}
       style={{ left: coord.left, top: coord.top }}
       aria-label={ariaLabel}
+      title={styleNote || undefined}
     >
       <div className="seat-badge">
         <div className="seat-name">
@@ -54,7 +59,6 @@ export const Seat: React.FC<SeatProps> = ({
               {positionTag}
             </span>
           )}
-          {player.id === 1 && <span className="seat-bluff-tag">Bluff 30%</span>}
         </div>
         <div className="seat-cards">
           <CardView card={player.hole?.[0]} hidden={!isHero && !isComplete} />
