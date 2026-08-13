@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { HeroAnalysis } from '../analysis';
 import { pct, money } from '../analysis';
-import { CoachChip } from './CoachChip';
 import { streetOf } from '../engine/types';
 
 export interface CoachChipsProps {
@@ -313,11 +312,19 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
     }
   };
 
-  const chipPositions: Record<Anchor, string> = {
-    CARDS: 'coach-chip-cards',     // bottom-left
-    POT: 'coach-chip-pot',         // bottom-centre
-    VILLAIN: 'coach-chip-villain', // right mid
-    STACK: 'coach-chip-stack',     // bottom-right
+  /* A bare number tells the player nothing about which number it is: "29%" and
+     "71%" were only distinguishable by hue. Each chip carries its own word. */
+  const labelOf = (anchor: Anchor): string => {
+    switch (anchor) {
+      case 'CARDS':
+        return isPreflop ? 'Hand' : 'Outs';
+      case 'POT':
+        return 'Price';
+      case 'VILLAIN':
+        return !isPreflop && !isRiver && toCall === 0 ? 'Folds needed' : 'Defend';
+      case 'STACK':
+        return 'SPR';
+    }
   };
 
   const chipHues: Record<Anchor, string> = {
@@ -329,21 +336,25 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
 
   return (
     <div className="coach-chips-container">
-      {visibleAnchors.map((anchor) => {
-        const content = getChipContent(anchor);
-        return (
-          <div key={anchor} className={`coach-chip-slot ${chipPositions[anchor]}`}>
-            <CoachChip
-              anchor={anchor}
-              value={content.value}
-              hue={chipHues[anchor]}
-              state={content.state}
-              onOpenPopover={() => setOpenPopover(openPopover === anchor ? null : anchor)}
-              isPopoverOpen={openPopover === anchor}
-            />
-          </div>
-        );
-      })}
+      <div className="coach-chip-row">
+        {visibleAnchors.map((anchor) => {
+          const content = getChipContent(anchor);
+          return (
+            <button
+              key={anchor}
+              type="button"
+              className={`coach-chip coach-chip-${content.state}`}
+              style={{ ['--chip-hue' as string]: chipHues[anchor] }}
+              aria-expanded={openPopover === anchor}
+              aria-label={`${labelOf(anchor)}: ${content.value}. Tap for the working.`}
+              onClick={() => setOpenPopover(openPopover === anchor ? null : anchor)}
+            >
+              <span className="coach-chip-label">{labelOf(anchor)}</span>
+              <span className="coach-chip-value">{content.value}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {openPopover && (
         <div

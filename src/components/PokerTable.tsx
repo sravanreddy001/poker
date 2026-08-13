@@ -1,16 +1,12 @@
 import React from 'react';
 import type { HandState } from '../engine/game';
-import type { HeroAnalysis } from '../analysis';
 import { money } from '../analysis';
 import { Seat } from './Seat';
 import { getBtnCoord } from './seatSlots';
 import { CardView } from './CardView';
-import { CoachChips } from './CoachChips';
 
 export interface PokerTableProps {
   state: HandState;
-  analysis?: HeroAnalysis | null;
-  coachDensity?: 'full' | 'focus' | 'off';
 }
 
 const POS_NAMES_6MAX = [
@@ -22,26 +18,16 @@ const POS_NAMES_6MAX = [
   { short: 'CO', full: 'Cutoff (CO)' },
 ];
 
-export const PokerTable: React.FC<PokerTableProps> = ({ state, analysis, coachDensity = 'full' }) => {
+export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
   const btnSeat = state.btnSeat ?? 0;
   const n = state.players.length;
   const btnCoord = getBtnCoord(btnSeat, n);
 
   const heroOffset = (0 - btnSeat + n) % n;
   const heroPosLabel = POS_NAMES_6MAX[heroOffset % POS_NAMES_6MAX.length]?.full ?? 'Position';
-  const toCall = Math.max(0, state.currentBet - state.players[0].committed);
 
   return (
     <div className="poker-table-wrapper">
-      {/* Coach Chips - positioned absolutely relative to table-zone/app-root */}
-      {analysis && (
-        <CoachChips
-          analysis={analysis}
-          state={state}
-          coachDensity={coachDensity}
-          toCall={toCall}
-        />
-      )}
       <div className="poker-oval-table">
         {/* Seats around the rail */}
         <div className="table-seats">

@@ -175,8 +175,12 @@ html, body {
 
 /* Oval Poker Felt Geometry */
 .poker-oval-table {
-  width: clamp(200px, 68vw, 240px);
-  height: clamp(290px, 58vh, 360px);
+  width: clamp(200px, 68vw, 250px);
+  /* Fill the table zone rather than sitting at a fixed height inside it: a
+     fixed 360px oval left a ~100px empty band above and below on a tall frame. */
+  height: 100%;
+  min-height: 290px;
+  max-height: 520px;
   border-radius: 50%;
   background: radial-gradient(ellipse at center, var(--felt-center) 0%, #114532 55%, var(--felt-outer) 100%);
   border: 7px solid var(--rail-wood);
@@ -1589,92 +1593,68 @@ html, body {
   margin-top: 4px;
 }
 
-/* Coach Chips Container - fills table-zone and layers over content */
+/* Coach chips: one labelled row above the peek strip. They used to be four
+   round chips absolutely positioned around the outside of the felt, which put
+   the four numbers in four different corners of the screen. */
 .coach-chips-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 4;
-}
-
-.coach-chip-slot {
-  position: absolute;
-  pointer-events: auto;
-}
-
-/* Chip slot positions: four corners of table-zone */
-.coach-chip-cards {
-  bottom: 16px;
-  left: 16px;
-}
-
-/* Left mid, not bottom centre: the hero seat owns the bottom centre, and a chip
-   parked there covered a hole card outright. */
-.coach-chip-pot {
-  top: 50%;
-  left: 16px;
-  transform: translateY(-50%);
-}
-
-.coach-chip-villain {
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.coach-chip-stack {
-  bottom: 16px;
-  right: 16px;
-}
-
-/* Coach Chip Button - expandable to accommodate text */
-.coach-chip-wrapper {
   position: relative;
+  flex-shrink: 0;
+  padding: 0 10px 6px;
+  z-index: 6;
+}
+
+.coach-chip-row {
+  display: flex;
+  gap: 6px;
 }
 
 .coach-chip {
-  min-width: 60px;
-  min-height: 60px;
-  padding: 8px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  flex: 1;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-  color: #000;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid var(--chip-hue, rgba(255, 255, 255, 0.2));
+  background: rgba(17, 28, 46, 0.72);
+  color: var(--text-main);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-clip: padding-box;
-  position: relative;
-  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.coach-chip:hover {
-  transform: scale(1.08);
-  filter: brightness(1.1);
+.coach-chip:hover,
+.coach-chip[aria-expanded='true'] {
+  background: rgba(30, 46, 72, 0.92);
 }
 
-.coach-chip:active {
-  transform: scale(0.96);
+.coach-chip-label {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
 }
 
 .coach-chip-value {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  line-height: 1.25;
-  max-width: 50px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  font-size: 8.5px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--chip-hue);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+/* A dimmed chip has no live decision behind it this street. */
+.coach-chip-dimmed {
+  opacity: 0.45;
+}
+
+.coach-chip-live {
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 /* Popover Container */
@@ -1858,17 +1838,6 @@ html, body {
   border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* The three low chips sit level with the hero seat, so a popover centred on the
-   chip lands squarely on the hole cards. Open these upward into the felt
-   instead — the one thing the player must always be able to see is their hand. */
-.coach-chip-cards .coach-chip-popover,
-.coach-chip-pot .coach-chip-popover,
-.coach-chip-stack .coach-chip-popover {
-  top: auto;
-  bottom: calc(100% + 10px);
-  transform: none;
-}
-
 /* Four stats plus five icons in a 420px frame: without an explicit two-line
    column each label wrapped to three lines and the value was clipped away. */
 .stat-strip .stat-item {
@@ -1886,13 +1855,15 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* One docked panel instead of a bubble hanging off each chip. Anchored to the
-   top of the table zone, clear of both the board and the hero's hole cards, and
-   above everything else in the zone so it is never clipped or half-covered. */
+/* One docked panel instead of a bubble hanging off each chip. It opens upward
+   from the chip row into the felt, so it never covers the hero's hole cards or
+   the action buttons, and it sits above everything so it is never clipped. */
 .coach-chip-popover-docked {
   position: absolute;
-  top: 8px;
-  bottom: auto;
+  top: auto;
+  /* Clear the hero seat, which sits directly above the chip row: at a 4px
+     offset the panel landed squarely on the hole cards. */
+  bottom: calc(100% + 108px);
   left: 50%;
   right: auto;
   width: 268px;
