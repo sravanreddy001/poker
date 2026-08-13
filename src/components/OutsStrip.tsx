@@ -7,14 +7,12 @@ export interface OutsStripProps {
   outs: Card[];
   ruleOfNEstimate: number | null;
   cardsToCome: number;
-  rawEquity: number;
 }
 
 export const OutsStrip: React.FC<OutsStripProps> = ({
   outs,
   ruleOfNEstimate,
   cardsToCome,
-  rawEquity,
 }) => {
   if (outs.length === 0) return null;
 
@@ -29,7 +27,7 @@ export const OutsStrip: React.FC<OutsStripProps> = ({
           <b>{ruleOfNEstimate !== null ? pct(ruleOfNEstimate) : '—'}</b>
         </span>
         <span className="outs-rule" title={DEFINITIONS.outs}>
-          Hand Strength ({outs.length} Outs) • Sim confirms {pct(rawEquity)}
+          {outs.length} cards win it for you
         </span>
       </div>
 

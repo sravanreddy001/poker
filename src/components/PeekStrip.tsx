@@ -2,19 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { pct, DEFINITIONS } from '../analysis';
 
 export interface PeekStripProps {
-  realizedEquity: number;
-  rawEquity?: number;
-  realizationFactor?: number;
+  /** Win odds 0..1, worked out by counting — never simulated. */
+  winOdds: number;
+  /** One line of arithmetic the player can redo at the table. */
+  winOddsWorking: string;
   breakEvenOdds?: number;
   bestLineLabel: string;
   onOpenSheet: () => void;
 }
 
 export const PeekStrip: React.FC<PeekStripProps> = ({
-  realizedEquity,
-  rawEquity = 0.45,
-  realizationFactor = 0.85,
-  breakEvenOdds = 0.15,
+  winOdds,
+  winOddsWorking,
+  breakEvenOdds = 0,
   bestLineLabel,
   onOpenSheet,
 }) => {
@@ -23,14 +23,9 @@ export const PeekStrip: React.FC<PeekStripProps> = ({
   const [bestLineShown, setBestLineShown] = useState(false);
   useEffect(() => setBestLineShown(false), [bestLineLabel]);
 
-  const realizedPct = Math.round(realizedEquity * 100);
-  const rawPct = Math.round(rawEquity * 100);
-  const factorPct = Math.round(realizationFactor * 100);
+  const winPct = Math.round(winOdds * 100);
   const bePct = Math.round(breakEvenOdds * 100);
-
-  const tooltipText = `🧮 Playable Odds Math Breakdown (${realizedPct}%):\n• Raw Showdown Equity (${rawPct}%): Pure win odds if all cards dealt now.\n• Position Retention (${factorPct}%): How much card strength you claim based on position.\n• Formula: ${rawPct}% Raw × ${factorPct}% Position = ${realizedPct}% Playable Odds.\n• Call Odds Threshold (${bePct}%): Minimum win % to call.\n• Verdict: ${
-    realizedPct >= bePct ? `+${realizedPct - bePct}% Profit Margin (+EV Call)` : `-${bePct - realizedPct}% Deficit (-EV Fold)`
-  }`;
+  const clears = winPct >= bePct;
 
   return (
     <button
@@ -38,30 +33,20 @@ export const PeekStrip: React.FC<PeekStripProps> = ({
       className="peek-strip"
       onClick={onOpenSheet}
       aria-label="Open win odds and expected value analysis drawer"
+      title={`${winOddsWorking}\n\n${DEFINITIONS.winOdds}`}
     >
       <div className="peek-content">
-        <span className="peek-item peek-tooltip-trigger" title={tooltipText}>
-          Playable Odds: <b className="peek-highlight">{pct(realizedEquity)}</b>
-          <span className="peek-math-hover-card">
-            <span className="math-hover-title">🧮 Playable Odds Math Breakdown</span>
-            <span className="math-hover-line">
-              🔹 <b>Raw Equity ({rawPct}%)</b>: Pure card win odds at showdown if no more bets occurred.
-            </span>
-            <span className="math-hover-line">
-              🔹 <b>Position Retention ({factorPct}%)</b>: Claim factor based on seat position (In position = 100%, Out of position = 80%).
-            </span>
-            <span className="math-hover-line highlight-line">
-              🎯 <b>Playable Odds Formula</b>: {rawPct}% Raw × {factorPct}% Position = <b>{realizedPct}% Realized</b>
-            </span>
-            <span className="math-hover-line sub-line">
-              ⚖️ <b>Break-Even Call Odds ({bePct}%)</b>: Minimum win % needed to call (Call ÷ Total Pot).
-            </span>
-            <span className="math-hover-line verdict-line">
-              {realizedPct >= bePct
-                ? `✅ Profit Margin: ${realizedPct}% > ${bePct}% (+${realizedPct - bePct}% +EV Call!)`
-                : `⚠️ Deficit: ${realizedPct}% < ${bePct}% (-${bePct - realizedPct}% -EV Fold!)`}
-            </span>
-          </span>
+        <span className="peek-item">
+          Win odds: <b className="peek-highlight">{pct(winOdds)}</b>
+        </span>
+        <span className="peek-divider">vs</span>
+        <span className="peek-item" title={DEFINITIONS.potOdds}>
+          Need:{' '}
+          {breakEvenOdds > 0 ? (
+            <b className={clears ? 'peek-good' : 'peek-bad'}>{pct(breakEvenOdds)}</b>
+          ) : (
+            <b className="peek-highlight">—</b>
+          )}
         </span>
         <span className="peek-divider">•</span>
         <span className="peek-item" title={DEFINITIONS.ev}>

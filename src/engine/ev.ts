@@ -1,9 +1,28 @@
 import { botAct, DEFAULT_BOT } from './bot';
-import { equityVsRange } from './equity';
-import { realizedEquity, RealizationInput, PERCEIVED_HERO_RANGE_PCT } from './realization';
-import { Combo, rangeTopPercent, removeDead } from './ranges';
+import { tableEquity } from './equity';
+import type { Card } from './cards';
+import { Combo, Range, rangeTopPercent, removeDead } from './ranges';
 import type { Rng } from './rng';
 import { streetOf } from './types';
+
+/** The spot the advisor prices: the hero's cards, the board and the money. */
+export interface SpotInput {
+  hole: Combo;
+  board: Card[];
+  pot: number;
+  stack: number;
+  bigBlind: number;
+  inPosition: boolean;
+  villainRange: Range;
+}
+
+/**
+ * The range a simulated opponent puts the hero on. It has to be a range: give
+ * the bot the hero's exact two cards and it folds every hand that loses to
+ * them, which makes value betting look worthless. Matches the band the real
+ * bots use in `game.ts`.
+ */
+export const PERCEIVED_HERO_RANGE_PCT = 0.3;
 
 export interface SizeOption {
   label: string;
@@ -58,14 +77,6 @@ export const SIZES: SizeOption[] = [
   { label: 'all-in', fraction: Infinity },
 ];
 
-/**
- * Equity budget for each simulated opponent decision. The sweep asks the bot
- * how it answers every size with every combo in its range — seven sizes times
- * a few hundred combos — so the live-play budget of 800 would cost over a
- * million hand evaluations per recommendation.
- */
-const BOT_SAMPLES = 150;
-
 export interface EvOption {
   label: string;
   amount: number;
@@ -73,13 +84,13 @@ export interface EvOption {
 }
 
 /**
- * Break-even equity for a call, the hero's actual (realized) equity, and the
- * resulting EV. `required` is the share of the final pot the call costs.
+ * Break-even equity for a call, the hero's win odds, and the resulting EV.
+ * `required` is the share of the final pot the call costs.
  */
-export function potOddsVerdict(toCall: number, pot: number, realized: number) {
+export function potOddsVerdict(toCall: number, pot: number, winOdds: number) {
   const required = toCall === 0 ? 0 : toCall / (pot + toCall);
-  const evOfCall = realized * (pot + toCall) - toCall;
-  return { required, actual: realized, evOfCall };
+  const evOfCall = winOdds * (pot + toCall) - toCall;
+  return { required, actual: winOdds, evOfCall };
 }
 
 /**
@@ -100,17 +111,10 @@ export function minDefenseFrequency(bet: number, pot: number): number {
   return pot / (pot + bet);
 }
 
-export function evaluateSizes(
-  input: RealizationInput & { toCall: number },
-  rng: Rng,
-): EvOption[] {
-  const { raw, realized } = realizedEquity(input, rng, 150);
+export function evaluateSizes(input: SpotInput & { toCall: number }, rng: Rng): EvOption[] {
+  const winOdds = tableEquity(input.hole, input.board, input.villainRange).equity;
   const live = removeDead(input.villainRange, [...input.hole, ...input.board]);
   const street = streetOf(input.board.length);
-
-  // How much showdown equity survives postflop play. Applied on top of the
-  // narrowed equities below so the sweep still speaks in realized terms.
-  const realizationFactor = raw > 0 ? realized / raw : 1;
 
   // What the opponent can see: a range, not our two cards. Handing the bot our
   // exact hand made it fold everything that loses to us, so value betting looked
@@ -145,7 +149,7 @@ export function evaluateSizes(
       // forfeits it. Facing a bet there is no check to offer, so name it a fold.
       return input.toCall > 0
         ? { label: 'fold', amount: 0, ev: 0 }
-        : { label: size.label, amount: 0, ev: realized * input.pot };
+        : { label: size.label, amount: 0, ev: winOdds * input.pot };
     }
 
     // Partition the range by how it answers this size. Equity against the hands
@@ -172,7 +176,6 @@ export function evaluateSizes(
         },
         DEFAULT_BOT,
         rng,
-        BOT_SAMPLES,
       );
 
       if (response.type === 'fold') {
@@ -187,7 +190,7 @@ export function evaluateSizes(
 
     const n = live.combos.length || 1;
     const equityAgainst = (combos: Combo[]) =>
-      Math.min(1, equityVsRange(input.hole, input.board, { combos }, rng, 400).equity * realizationFactor);
+      tableEquity(input.hole, input.board, { combos }).equity;
 
     // Fold equity: we take the pot as it stands, risking nothing.
     let ev = folds * input.pot;

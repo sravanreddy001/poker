@@ -1,4 +1,5 @@
-import { equityVsRange } from './equity';
+import { ruleOf42, showdownEquity, structuralOuts } from './equity';
+import { removeDead } from './ranges';
 import { canonicalName, HAND_ORDER } from './ranges';
 import type { Rng } from './rng';
 import type { Action, BotConfig, BotContext } from './types';
@@ -48,14 +49,23 @@ function preflopAction(ctx: BotContext, cfg: BotConfig): Action {
 }
 
 /**
- * `samples` is the equity budget for one decision. Live play can afford the
- * default; callers that run this thousands of times inside a simulation (the
- * size sweep, the realization loop) pass a smaller one.
+ * Postflop hand strength the way a player reads it at the table: the share of
+ * the opponent's range the made hand already beats, or — when behind — the
+ * Rule of 4/2 on the outs the hand's shape gives it. No sampling, so a spot
+ * always plays the same way and every input is one a human can recount.
  */
-export function botAct(ctx: BotContext, cfg: BotConfig, rng: Rng, samples = 800): Action {
+function handStrength(ctx: BotContext): number {
+  const live = removeDead(ctx.villainRange, [...ctx.hole, ...ctx.board]);
+  const showdown = showdownEquity(ctx.hole, ctx.board, live);
+  if (showdown > 0.5) return showdown;
+  const outs = structuralOuts(ctx.hole, ctx.board);
+  return Math.max(showdown, ruleOf42(outs, 5 - ctx.board.length));
+}
+
+export function botAct(ctx: BotContext, cfg: BotConfig, rng: Rng): Action {
   if (ctx.street === 'preflop') return preflopAction(ctx, cfg);
 
-  const { equity } = equityVsRange(ctx.hole, ctx.board, ctx.villainRange, rng, samples);
+  const equity = handStrength(ctx);
   const potOdds = ctx.toCall > 0 ? ctx.toCall / (ctx.pot + ctx.toCall) : 0;
 
   // Raw pot odds price the chips but not the message. A bet many times the pot

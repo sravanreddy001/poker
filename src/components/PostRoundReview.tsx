@@ -5,8 +5,7 @@ import { EquityGraph } from './EquityGraph';
 
 export interface ReviewRecord {
   street: string;
-  rawEquity: number;
-  realizedEquity: number;
+  winOdds: number;
   chosen: string;
   best: string;
   evLost: number;

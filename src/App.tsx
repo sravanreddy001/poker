@@ -47,8 +47,7 @@ function loadStats(): SessionStats {
 
 export interface DecisionRecord {
   street: string;
-  rawEquity: number;
-  realizedEquity: number;
+  winOdds: number;
   chosen: string;
   best: string;
   evLost: number;
@@ -152,8 +151,7 @@ export default function App() {
 
       const rationale = getOptimalActionRationale({
         actionLabel: topBest.label,
-        rawEquity: analysis.rawEquity,
-        realizedEquity: analysis.realizedEquity,
+        winOdds: analysis.winOdds,
         toCall: analysis.toCall,
         pot: state.pot,
         outsCount: analysis.outs.length,
@@ -163,8 +161,7 @@ export default function App() {
 
       const record: DecisionRecord = {
         street: state.street,
-        rawEquity: analysis.rawEquity,
-        realizedEquity: analysis.realizedEquity,
+        winOdds: analysis.winOdds,
         chosen: userOpt ? userOpt.label : (action.type === 'bet' || action.type === 'raise' ? `${action.type} ${action.amount}` : action.type),
         best: topBest.label,
         evLost,
@@ -393,9 +390,8 @@ export default function App() {
           {/* Peek Strip (Above Action Bar) */}
           {heroTurn && analysis && (
             <PeekStrip
-              realizedEquity={analysis.realizedEquity}
-              rawEquity={analysis.rawEquity}
-              realizationFactor={analysis.realizationFactor}
+              winOdds={analysis.winOdds}
+              winOddsWorking={analysis.winOddsWorking}
               breakEvenOdds={analysis.potOdds.required}
               bestLineLabel={bestLineLabel}
               onOpenSheet={() => handleSnapChange(snapMemory === 'peek' ? 'half' : snapMemory)}
@@ -425,9 +421,9 @@ export default function App() {
               {activeTab === 'equity' && (
                 <>
                   <EquityBar
-                    rawEquity={analysis.rawEquity}
-                    realizedEquity={analysis.realizedEquity}
-                    realizationFactor={analysis.realizationFactor}
+                    winOdds={analysis.winOdds}
+                    winOddsWorking={analysis.winOddsWorking}
+                    winOddsMethod={analysis.winOddsMethod}
                     breakEvenOdds={
                       analysis.toCall > 0 ? analysis.toCall / (state.pot + analysis.toCall) : undefined
                     }
@@ -436,7 +432,6 @@ export default function App() {
                     outs={analysis.outs}
                     ruleOfNEstimate={analysis.ruleOfNEstimate}
                     cardsToCome={analysis.cardsToCome}
-                    rawEquity={analysis.rawEquity}
                   />
                 </>
               )}
@@ -450,7 +445,7 @@ export default function App() {
                   revealed={revealed}
                   onReveal={handleReveal}
                   pot={state.pot}
-                  realizedEquity={analysis.realizedEquity}
+                  winOdds={analysis.winOdds}
                 />
               )}
 
