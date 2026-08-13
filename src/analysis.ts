@@ -111,8 +111,9 @@ export function getSizingRationale(amount: number, pot: number, winOdds: number)
   const pctOfPot = Math.round((amount / pot) * 100);
   const relPct = Math.round(winOdds * 100);
 
+  // Reachable from the slider even though the advisor no longer proposes it.
   if (pctOfPot >= 150) {
-    return `2x Pot Overbet (${pctOfPot}% Pot): The mathematical EV sweet spot! Smaller bets (1x pot) leave money on the table against opponent's catchers, while larger bets (4x pot) force opponent to fold everything except hands that beat you. 2x pot maximizes [Call Amount × Calling Frequency].`;
+    return `Overbet (${pctOfPot}% Pot): Only their strongest hands can call this, so it wins big when they hold one and folds out everything else. Priced above the pot, it needs a very polarised range to be worth it.`;
   }
   if (pctOfPot >= 90) {
     return `Large / All-In (${pctOfPot}% Pot): Best for monster hands (${relPct}% equity) to extract maximum dollar value or polarize your bluffing range against catchers.`;

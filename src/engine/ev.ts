@@ -67,13 +67,16 @@ export function commitmentTier(spr: number): {
   };
 }
 
+/**
+ * The sizes the advisor is allowed to name, kept in step with the buttons in
+ * ActionBar: recommending a line the player has no button for teaches a move
+ * they cannot make. 1/3 pot went with the preset row it belonged to.
+ */
 export const SIZES: SizeOption[] = [
   { label: 'check', fraction: 0 },
-  { label: '1/3 pot', fraction: 1 / 3 },
   { label: '1/2 pot', fraction: 0.5 },
   { label: '3/4 pot', fraction: 0.75 },
   { label: 'pot', fraction: 1 },
-  { label: '2x pot', fraction: 2 },
   { label: 'all-in', fraction: Infinity },
 ];
 
