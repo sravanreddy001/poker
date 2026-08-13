@@ -53,6 +53,11 @@ export interface DecisionRecord {
   best: string;
   evLost: number;
   rationale?: string;
+  /** The pot as the decision was made, and what it cost to continue. */
+  pot: number;
+  toCall: number;
+  /** Break-even win rate the price demanded; 0 when nothing was owed. */
+  priceNeeded: number;
 }
 
 export default function App() {
@@ -167,6 +172,9 @@ export default function App() {
         best: topBest.label,
         evLost,
         rationale,
+        pot: state.pot,
+        toCall: analysis.toCall,
+        priceNeeded: analysis.potOdds.required,
       };
 
       setDecisions((d) => [...d, record]);

@@ -321,18 +321,55 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
           };
         }
 
-        // Checked to: show bluff price
+        // Checked to: the price of a bluff, from the bettor's side.
+        const bluffBet = state.pot * 0.75;
+        const folds = analysis.bluffPriceAtPot;
         return {
-          value: `${pct(analysis.bluffPriceAtPot)}`,
+          value: `${pct(folds)}`,
           state: 'idle',
           popover: (
             <div className="coach-popover-content">
-              <div className="coach-popover-line">
-                <b>Need {pct(analysis.bluffPriceAtPot)} folds</b> to bluff 3/4 pot
+              <div className="coach-math">
+                <span className="coach-math-step">If you bet</span>
+                <span className="coach-math-work">
+                  {money(bluffBet)} into {money(state.pot)}
+                </span>
+                <span className="coach-math-out">3/4 pot</span>
+
+                <span className="coach-math-step">You risk</span>
+                <span className="coach-math-work">
+                  {money(bluffBet)} to win {money(state.pot)}
+                </span>
+                <span className="coach-math-out">right now</span>
+
+                <span className="coach-math-step">Break-even folds</span>
+                <span className="coach-math-work">
+                  {money(bluffBet)} ÷ {money(state.pot + bluffBet)}
+                </span>
+                <span className="coach-math-out coach-math-answer">{pct(folds)}</span>
               </div>
-              <div className="coach-popover-line">Opponent must fold to break even</div>
+
+              <div className="coach-popover-line">
+                <b>How to get it at the table:</b> bet ÷ (pot + bet) — the same division as pot
+                odds, done from the bettor's chair. Half pot needs 33%, three-quarters 43%, pot
+                50%. Three numbers worth knowing cold.
+              </div>
+
+              {/* The three standard sizes, seen every hand they apply. */}
+              <div className="coach-ladder" aria-label="Break-even folds by bet size">
+                <span className="coach-ladder-hand">1/2 pot = 33%</span>
+                <span className="coach-ladder-hand coach-ladder-you">3/4 pot = 43%</span>
+                <span className="coach-ladder-hand">pot = 50%</span>
+              </div>
+
+              <div className="coach-popover-line">
+                <b>What it means:</b> fold them out more often than {pct(folds)} and the bet profits
+                holding any two cards. Below that it needs real equity to be worth making — which
+                is why a bluff with outs is worth more than a bluff without.
+              </div>
+
               <div className="coach-popover-table">
-                At the table: "If I bet, I need {pct(analysis.bluffPriceAtPot)} folds"
+                At the table: "If I bet, I need {pct(folds)} folds"
               </div>
             </div>
           ),

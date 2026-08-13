@@ -10,6 +10,9 @@ export interface ReviewRecord {
   best: string;
   evLost: number;
   rationale?: string;
+  pot: number;
+  toCall: number;
+  priceNeeded: number;
 }
 
 interface PostRoundReviewProps {
@@ -66,6 +69,18 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
       subtext = 'Strategic mistakes left profit on the table. Review the street-by-street analysis below to fix leaks.';
       break;
   }
+
+  // The bet is already in the recorded pot, so the pot it was bet into is
+  // pot - toCall, and bet / pot is exactly the bluff's break-even fold rate.
+  const bluffSpots = decisions
+    .filter((d) => d.toCall > 0 && d.pot > 0)
+    .map((d) => ({
+      street: d.street,
+      bet: d.toCall,
+      potBefore: Math.max(0, d.pot - d.toCall),
+      bluffNeeded: d.toCall / d.pot,
+      mdf: (d.pot - d.toCall) / d.pot,
+    }));
 
   // Leak Detector logic
   let leakTag = '';
@@ -159,15 +174,71 @@ export const PostRoundReview: React.FC<PostRoundReviewProps> = ({
           </div>
         )}
 
-        {/* Educational Definition Note */}
-        <div className="learning-card">
-          <div className="learning-card-header">
-            <span>💡 Core Teaching Criterion</span>
+        {/* What one hand can actually teach: the comparison you made at each
+            decision, and whether it was the right one regardless of the result. */}
+        <div className="review-panel">
+          <div className="section-label">📊 The comparison, street by street</div>
+          <div className="review-table">
+            <span className="review-th">Street</span>
+            <span className="review-th">You had</span>
+            <span className="review-th">Price needed</span>
+            <span className="review-th">Edge</span>
+            {decisions.map((d, i) => {
+              const had = Math.round(d.winOdds * 100);
+              const needed = Math.round(d.priceNeeded * 100);
+              const free = d.toCall <= 0;
+              return (
+                <React.Fragment key={i}>
+                  <span className="review-td review-street">{d.street}</span>
+                  <span className="review-td">{had}%</span>
+                  <span className="review-td">{free ? 'nothing owed' : `${needed}%`}</span>
+                  <span className={`review-td ${free || had >= needed ? 'edge-yes' : 'edge-no'}`}>
+                    {free ? '—' : had >= needed ? `+${had - needed}` : `${had - needed}`}
+                  </span>
+                </React.Fragment>
+              );
+            })}
           </div>
-          <div className="learning-card-body">
-            Separate decision quality from short-term outcome. Focus on choosing <b>+EV actions</b> over time, as variance evens out over large hand volume.
+          <div className="review-note">
+            This is the whole statistical game: one number you counted, one number the price
+            demanded, and the difference between them. Being ahead of the price every time is what
+            makes money — <b>this hand's result does not tell you whether you were</b>. The pot
+            swung {money(state.awardedPot)}; your decisions were worth{' '}
+            {totalEvLost > 0.01 ? `-${money(totalEvLost)}` : money(0)}. Only the second number
+            repeats over the next thousand hands.
           </div>
         </div>
+
+        {/* The bluff side of the same arithmetic, which is where most of the
+            money in a no-limit game actually moves. */}
+        {bluffSpots.length > 0 && (
+          <div className="review-panel">
+            <div className="section-label">🎭 The bluff angle</div>
+            <div className="review-table review-table-bluff">
+              <span className="review-th">Street</span>
+              <span className="review-th">They bet</span>
+              <span className="review-th">Their bluff needed</span>
+              <span className="review-th">So you defend</span>
+              {bluffSpots.map((s, i) => (
+                <React.Fragment key={i}>
+                  <span className="review-td review-street">{s.street}</span>
+                  <span className="review-td">
+                    {money(s.bet)} into {money(s.potBefore)}
+                  </span>
+                  <span className="review-td">{Math.round(s.bluffNeeded * 100)}% folds</span>
+                  <span className="review-td">{Math.round(s.mdf * 100)}%</span>
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="review-note">
+              A bluff is priced exactly like a call, from the other side: <b>bet ÷ (pot + bet)</b>{' '}
+              is the share of the time it has to work. Those two columns always add to 100% — the
+              folds their bluff needs and the hands you have to keep are the same number seen from
+              opposite chairs. Fold more than that and their bet prints money holding anything;
+              defend more and they can stop bluffing and only value bet you.
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="review-modal-actions">
