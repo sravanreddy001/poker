@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { HeroAnalysis } from '../analysis';
-import { pct, money } from '../analysis';
-import { CoachChip } from './CoachChip';
+import { pct, money, cardLabel } from '../analysis';
 import { streetOf } from '../engine/types';
 
 export interface CoachChipsProps {
@@ -97,16 +96,44 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               popover: <div className="coach-popover-text">Hand tier unknown.</div>,
             };
           }
+          const shape = analysis.shape;
           return {
             value: tier.label.split(' ')[0],
             state: liveAnchors.has('CARDS') ? 'live' : 'idle',
             popover: (
               <div className="coach-popover-content">
                 <div className="coach-popover-line">
-                  <b>{tier.label}</b>
+                  <b>
+                    {shape.name} — {tier.label}
+                  </b>
                 </div>
                 <div className="coach-popover-line">
-                  Read straight off a starting-hand chart — the top {tier.topPct}% of hands.
+                  {tier.tier === 'trash'
+                    ? `Ranked ${shape.rank} of ${shape.of} starting hands — below the top 35%, which is the widest range worth opening.`
+                    : `Ranked ${shape.rank} of ${shape.of} starting hands — inside the top ${tier.topPct}%.`}
+                </div>
+                <ul className="coach-popover-reasons">
+                  {shape.reasons.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+
+                {/* The chart neighbours, seen every single hand: this is how the
+                    169-hand order gets learned without sitting down to memorise it. */}
+                <div className="coach-ladder" aria-label="Neighbouring hands in the chart">
+                  <span className="coach-ladder-caption">Stronger</span>
+                  {shape.better.map((h) => (
+                    <span key={h} className="coach-ladder-hand">
+                      {h}
+                    </span>
+                  ))}
+                  <span className="coach-ladder-hand coach-ladder-you">{shape.name}</span>
+                  {shape.worse.map((h) => (
+                    <span key={h} className="coach-ladder-hand">
+                      {h}
+                    </span>
+                  ))}
+                  <span className="coach-ladder-caption">Weaker</span>
                 </div>
                 <div className="coach-popover-line coach-popover-table">
                   At the table: "{tier.label}"
@@ -133,6 +160,24 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                 {analysis.cardsToCome} card{analysis.cardsToCome === 1 ? '' : 's'} to come, so each
                 out is worth about {multiplier}%.
               </div>
+              {/* Name the cards. "9 outs" is a number to trust; the nine cards
+                  are a pattern that shows up again on the next flush draw. */}
+              {analysis.outs.length > 0 && (
+                <div className="coach-ladder" aria-label="The cards that win it">
+                  {analysis.outs.map((c) => {
+                    const l = cardLabel(c);
+                    return (
+                      <span
+                        key={c}
+                        className={`coach-ladder-hand ${l.red ? 'coach-out-red' : 'coach-out-black'}`}
+                      >
+                        {l.rank}
+                        {l.suit}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
               <div className="coach-popover-line coach-popover-table">
                 At the table: "I have {analysis.outs.length} outs"
               </div>
@@ -171,7 +216,10 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
         }
 
         // Flop, Turn, River: toCall, ratio, break-even %
-        const ratio = state.pot > 0 ? toCall / state.pot : 0;
+        // The bet is already in state.pot, so measure it against what it was
+        // bet into — otherwise a pot-sized bet reads as half pot.
+        const potBeforeBet = Math.max(0, state.pot - toCall);
+        const ratio = potBeforeBet > 0 ? toCall / potBeforeBet : 0;
         const odds = analysis.potOdds.required;
         return {
           value: pct(odds),
@@ -181,8 +229,15 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               <div className="coach-popover-line">
                 <b>Call: {money(toCall)}</b>
               </div>
-              <div className="coach-popover-line">Pot odds: {pct(odds)}</div>
-              <div className="coach-popover-line">Pot ratio: 1:{(ratio > 0 ? 1 / ratio : 0).toFixed(1)}</div>
+              <div className="coach-popover-line">
+                {money(toCall)} ÷ ({money(state.pot)} pot + {money(toCall)}) = {pct(odds)} — the
+                share of the final pot your call buys.
+              </div>
+              <div className="coach-popover-line">
+                You have to win this about 1 hand in{' '}
+                {odds > 0 ? Math.round(1 / odds) : '—'} to break even. They are betting{' '}
+                {ratio > 0 ? `${Math.round(ratio * 100)}%` : '—'} of the pot.
+              </div>
               <div className="coach-popover-table">
                 At the table: "Price is {pct(odds)}"
               </div>
@@ -234,7 +289,12 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                   <b>Defend {pct(analysis.mdfFacing)}</b> if they bet
                 </div>
                 <div className="coach-popover-line">
-                  Minimum frequency to make them indifferent to bluffing
+                  Pot ÷ (pot + bet) = {pct(analysis.mdfFacing)}. Fold more often than{' '}
+                  {pct(1 - analysis.mdfFacing)} and their bluff prints money with any two cards.
+                </div>
+                <div className="coach-popover-line">
+                  It applies to your whole range, not this hand: keep roughly{' '}
+                  {pct(analysis.mdfFacing)} of the hands you would have here, strongest first.
                 </div>
                 <div className="coach-popover-table">
                   At the table: "Defend {pct(analysis.mdfFacing)}"
@@ -281,7 +341,11 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
                 <div className="coach-popover-line">
                   <b>SPR after call: {sprAfterCall.toFixed(2)}</b>
                 </div>
-                <div className="coach-popover-line">Stack depth postflop</div>
+                <div className="coach-popover-line">
+                  SPR is stack ÷ pot — how many more pot-sized bets you still have behind. Low
+                  means one big bet gets it all in; high means there is room to be pushed off a
+                  hand.
+                </div>
                 <div className="coach-popover-table">
                   At the table: "If called, stack-to-pot is {sprAfterCall.toFixed(1)}"
                 </div>
@@ -301,7 +365,10 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
               <div className="coach-popover-line">
                 <b>{commitment.label}</b>
               </div>
-              <div className="coach-popover-line">SPR: {spr.toFixed(2)}</div>
+              <div className="coach-popover-line">
+                Stack {money(analysis.spr * state.pot)} ÷ pot {money(state.pot)} ={' '}
+                {spr.toFixed(2)} — how many more pot-sized bets you have behind.
+              </div>
               <div className="coach-popover-line">{commitment.note}</div>
               <div className="coach-popover-table">
                 At the table: "{commitment.label}"
@@ -313,11 +380,19 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
     }
   };
 
-  const chipPositions: Record<Anchor, string> = {
-    CARDS: 'coach-chip-cards',     // bottom-left
-    POT: 'coach-chip-pot',         // bottom-centre
-    VILLAIN: 'coach-chip-villain', // right mid
-    STACK: 'coach-chip-stack',     // bottom-right
+  /* A bare number tells the player nothing about which number it is: "29%" and
+     "71%" were only distinguishable by hue. Each chip carries its own word. */
+  const labelOf = (anchor: Anchor): string => {
+    switch (anchor) {
+      case 'CARDS':
+        return isPreflop ? 'Hand' : 'Outs';
+      case 'POT':
+        return 'Price';
+      case 'VILLAIN':
+        return !isPreflop && !isRiver && toCall === 0 ? 'Folds needed' : 'Defend';
+      case 'STACK':
+        return 'SPR';
+    }
   };
 
   const chipHues: Record<Anchor, string> = {
@@ -329,21 +404,25 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
 
   return (
     <div className="coach-chips-container">
-      {visibleAnchors.map((anchor) => {
-        const content = getChipContent(anchor);
-        return (
-          <div key={anchor} className={`coach-chip-slot ${chipPositions[anchor]}`}>
-            <CoachChip
-              anchor={anchor}
-              value={content.value}
-              hue={chipHues[anchor]}
-              state={content.state}
-              onOpenPopover={() => setOpenPopover(openPopover === anchor ? null : anchor)}
-              isPopoverOpen={openPopover === anchor}
-            />
-          </div>
-        );
-      })}
+      <div className="coach-chip-row">
+        {visibleAnchors.map((anchor) => {
+          const content = getChipContent(anchor);
+          return (
+            <button
+              key={anchor}
+              type="button"
+              className={`coach-chip coach-chip-${content.state}`}
+              style={{ ['--chip-hue' as string]: chipHues[anchor] }}
+              aria-expanded={openPopover === anchor}
+              aria-label={`${labelOf(anchor)}: ${content.value}. Tap for the working.`}
+              onClick={() => setOpenPopover(openPopover === anchor ? null : anchor)}
+            >
+              <span className="coach-chip-label">{labelOf(anchor)}</span>
+              <span className="coach-chip-value">{content.value}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {openPopover && (
         <div
@@ -354,7 +433,7 @@ export const CoachChips: React.FC<CoachChipsProps> = ({
         >
           <div className="coach-popover-head">
             <span className="coach-popover-anchor" style={{ background: chipHues[openPopover] }} />
-            {openPopover}
+            {labelOf(openPopover)}
             <button
               type="button"
               className="coach-popover-close"

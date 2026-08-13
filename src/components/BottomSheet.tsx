@@ -104,21 +104,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             className={`tab-btn ${activeTab === 'equity' ? 'active' : ''}`}
             onClick={() => selectTab('equity')}
           >
-            Equity
+            Win Odds
           </button>
           <button
             type="button"
             className={`tab-btn ${activeTab === 'lines' ? 'active' : ''}`}
             onClick={() => selectTab('lines')}
           >
-            Lines & EV
+            Best Line
           </button>
           <button
             type="button"
             className={`tab-btn ${activeTab === 'villain' ? 'active' : ''}`}
             onClick={() => selectTab('villain')}
           >
-            Villain Range
+            Their Range
           </button>
           <button
             type="button"

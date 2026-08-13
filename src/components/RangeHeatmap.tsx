@@ -1,26 +1,39 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DEFINITIONS } from '../analysis';
+import { canonicalName, rangeTopPercent } from '../engine/ranges';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 export interface RangeHeatmapProps {
   rangePct: number;
-  comboCount?: number;
 }
 
-export const RangeHeatmap: React.FC<RangeHeatmapProps> = ({ rangePct, comboCount }) => {
-  const calculatedCombos = comboCount ?? Math.round(1326 * rangePct);
+export const RangeHeatmap: React.FC<RangeHeatmapProps> = ({ rangePct }) => {
+  // Shade the grid from the same range object the engine deals against. The
+  // old rank-sum approximation lit up cells the opponent was never holding.
+  const { names, comboCount } = useMemo(() => {
+    const range = rangeTopPercent(rangePct);
+    return {
+      names: new Set(range.combos.map(([a, b]) => canonicalName(a, b))),
+      comboCount: range.combos.length,
+    };
+  }, [rangePct]);
 
   return (
     <div className="range-heatmap-card">
       <div className="range-heatmap-header">
         <span className="range-title" title={DEFINITIONS.villainRange}>
-          Opponent Opening Range (13×13 Matrix)
+          The hands they can have
         </span>
         <span className="range-pct-badge">
-          Top {Math.round(rangePct * 100)}% ({calculatedCombos} combos)
+          Top {Math.round(rangePct * 100)}% · {comboCount} combos
         </span>
       </div>
+
+      <p className="range-lede">
+        Every hand the trainer assumes this opponent opens. The lit cells are exactly what your win
+        odds are measured against — nothing outside them is in their range.
+      </p>
 
       <div className="range-grid">
         {RANKS.map((r1, i) =>
@@ -29,13 +42,7 @@ export const RangeHeatmap: React.FC<RangeHeatmapProps> = ({ rangePct, comboCount
             const isSuited = i < j;
             const label = isPair ? `${r1}${r2}` : isSuited ? `${r1}${r2}s` : `${r2}${r1}o`;
 
-            const pairRankVal = 14 - i;
-            const isInRange =
-              isPair
-                ? pairRankVal >= 14 - rangePct * 13
-                : isSuited
-                  ? pairRankVal + (14 - j) >= 22 - rangePct * 20
-                  : pairRankVal + (14 - j) >= 24 - rangePct * 18;
+            const isInRange = names.has(label);
 
             return (
               <div
@@ -55,12 +62,13 @@ export const RangeHeatmap: React.FC<RangeHeatmapProps> = ({ rangePct, comboCount
       {/* Educational Definition Card */}
       <div className="learning-card">
         <div className="learning-card-header">
-          <span>🔍 Shorthand Notation Guide: Suited (s) vs Offsuit (o)</span>
+          <span>💡 Reading the grid</span>
         </div>
         <div className="learning-card-body">
-          <b>AKs (Suited)</b>: Ace-King of the <b>same suit</b> (e.g. A♠ K♠). 4 combos total.<br />
-          <b>AKo (Offsuit)</b>: Ace-King of <b>different suits</b> (e.g. A♠ K♥). 12 combos total.<br />
-          Top-Right cells (<b>s</b>) = Suited | Bottom-Left cells (<b>o</b>) = Offsuit | Diagonal = Pairs.
+          <b>Diagonal</b> = pairs. <b>Above it</b> = suited (AKs, both cards one suit, 4 combos).{' '}
+          <b>Below it</b> = offsuit (AKo, different suits, 12 combos).
+          <br />
+          That 4-vs-12 split is why offsuit hands make up most of a range: count combos, not cells.
         </div>
       </div>
     </div>

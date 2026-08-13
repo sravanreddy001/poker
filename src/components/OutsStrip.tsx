@@ -22,12 +22,12 @@ export const OutsStrip: React.FC<OutsStripProps> = ({
   return (
     <div className="outs-strip-container">
       <div className="outs-strip-header">
-        <span className="outs-title" title={DEFINITIONS.ruleOf42}>
-          Rule-of-{multiplier} ({streetName}): {outs.length} × {multiplier} ={' '}
-          <b>{ruleOfNEstimate !== null ? pct(ruleOfNEstimate) : '—'}</b>
+        <span className="outs-title" title={DEFINITIONS.outs}>
+          The cards that win it
         </span>
-        <span className="outs-rule" title={DEFINITIONS.outs}>
-          {outs.length} cards win it for you
+        <span className="outs-rule" title={DEFINITIONS.ruleOf42}>
+          {outs.length} × {multiplier} ={' '}
+          <b>{ruleOfNEstimate !== null ? pct(ruleOfNEstimate) : '—'}</b>
         </span>
       </div>
 
@@ -37,15 +37,10 @@ export const OutsStrip: React.FC<OutsStripProps> = ({
         ))}
       </div>
 
-      {/* Educational Definition Card */}
-      <div className="learning-card">
-        <div className="learning-card-header">
-          <span>⚡ Definition: Outs & Rule of {multiplier}</span>
-        </div>
-        <div className="learning-card-body">
-          <b>Outs</b> are unseen cards remaining in the deck that make your hand a winner.<br />
-          On the <b>{streetName}</b>, multiply outs by <b>{multiplier}</b> ({outs.length} × {multiplier} = <b>{ruleOfNEstimate !== null ? pct(ruleOfNEstimate) : ''}</b>) for an instant mental estimate of your win percentage.
-        </div>
+      {/* Counting these by hand is the whole drill, so name what to count. */}
+      <div className="outs-note">
+        Count the cards above, not the percentage: on the <b>{streetName}</b> there {multiplier === 4 ? 'are 2 cards' : 'is 1 card'} to
+        come, so each one is worth about <b>{multiplier}%</b>.
       </div>
     </div>
   );

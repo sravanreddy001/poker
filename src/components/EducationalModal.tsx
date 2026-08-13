@@ -27,11 +27,7 @@ export const EducationalModal: React.FC<EducationalModalProps> = ({ isOpen, onCl
     },
     {
       title: '🎯 Bet Sizing Strategy (Why Choose a Specific Size?)',
-      desc: 'Sizing choices are driven by board texture and hand equity:\n• ⚡ Small Sizing (1/3 Pot / 33%): High-frequency probe bet on dry boards. Risks minimal chips while forcing opponent to fold low-equity hands.\n• 🎯 Medium Sizing (1/2 Pot / 50%): Standard value bet. Extracts value from second-best pairs while keeping opponent\'s calling range wide.\n• 💥 Large Sizing (3/4 Pot / 75%): Used on wet/draw-heavy textures with strong equity to charge draws a high price to see future cards.\n• 👑 Overbet / All-In (100%+ Pot / Shove): Used with monster hands to extract maximum dollar value or polarize your bluffing range.',
-    },
-    {
-      title: '👑 Why Overbet 2x Pot? (The Goldilocks EV Curve)',
-      desc: 'Expected Value ($ EV) follows a curve: EV = [Call Amount × Calling Frequency].\n• Why NOT Lower (1x Pot)? Betting smaller leaves dollar profit on the table. Opponent would still call 2x pot with their strong catchers.\n• Why NOT Higher (4x Pot)? Betting 4x pot exceeds opponent\'s elastic calling threshold, forcing them to fold everything except hands that beat you (making you get called only when losing).\n• The 2x Sweet Spot: Maximizes total dollar extraction (+ $4.14 EV) while keeping opponent\'s catchers in the pot!',
+      desc: 'The trainer offers the sizes a real table gives you a button for, and each one says something different:\n• 🎯 Half Pot (50%): Standard value bet. Charges second-best pairs while keeping their calling range wide.\n• 💥 Three-Quarter Pot (75%): For wet, draw-heavy boards — makes a draw pay a price worse than its odds.\n• 👑 Pot: Polarised. You have a big hand or a real bluff, and you are happy to fold out everything in between.\n• 🔥 All-In: When the stack-to-pot ratio is low enough that the rest of the money was going in anyway.\nAnything between these sizes is still on the slider — the advisor just will not name a size you have no button for.',
     },
     {
       title: '🧮 How to Calculate Win Odds & Pot Odds Yourself (4 Steps)',

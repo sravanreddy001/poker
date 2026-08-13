@@ -1,7 +1,7 @@
 import { Card, rankOf, suitOf } from './engine/cards';
 import { countOuts, ruleOf42, tableEquity, EquityMethod } from './engine/equity';
 import { evaluateSizes, potOddsVerdict, EvOption, bluffPrice, minDefenseFrequency, commitmentTier } from './engine/ev';
-import { rangeTopPercent, Combo, tierOf, HandTier } from './engine/ranges';
+import { rangeTopPercent, Combo, tierOf, handShape, HandShape, HandTier } from './engine/ranges';
 import { makeRng } from './engine/rng';
 import { DEFAULT_BOT } from './engine/bot';
 import type { HandState } from './engine/game';
@@ -29,6 +29,8 @@ export interface HeroAnalysis {
   mdfFacing: number;
   commitment: { tier: 'committed' | 'shallow' | 'medium' | 'deep'; label: string; note: string };
   preflopTier: { tier: HandTier; label: string; topPct: number } | null;
+  /** Why the starting hand rates where it does — shown behind the Hand chip. */
+  shape: HandShape;
 }
 
 export const DEFINITIONS = {
@@ -109,8 +111,9 @@ export function getSizingRationale(amount: number, pot: number, winOdds: number)
   const pctOfPot = Math.round((amount / pot) * 100);
   const relPct = Math.round(winOdds * 100);
 
+  // Reachable from the slider even though the advisor no longer proposes it.
   if (pctOfPot >= 150) {
-    return `2x Pot Overbet (${pctOfPot}% Pot): The mathematical EV sweet spot! Smaller bets (1x pot) leave money on the table against opponent's catchers, while larger bets (4x pot) force opponent to fold everything except hands that beat you. 2x pot maximizes [Call Amount × Calling Frequency].`;
+    return `Overbet (${pctOfPot}% Pot): Only their strongest hands can call this, so it wins big when they hold one and folds out everything else. Priced above the pot, it needs a very polarised range to be worth it.`;
   }
   if (pctOfPot >= 90) {
     return `Large / All-In (${pctOfPot}% Pot): Best for monster hands (${relPct}% equity) to extract maximum dollar value or polarize your bluffing range against catchers.`;
@@ -206,8 +209,12 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
   const advice = evaluateSizes({ ...input, toCall }, rng);
 
   // Coach chips data
+  // A bet is already in s.pot by the time the hero acts, but MDF is defined
+  // against the pot the bettor bet into. Without backing the bet out, a
+  // pot-sized bet reported an MDF of 66% where the real answer is 50%.
+  const potBeforeBet = Math.max(0, s.pot - toCall);
   const bluffPriceAtPot = bluffPrice(s.pot * 0.75, s.pot); // 3/4 pot is default semi-bluff size
-  const mdfFacing = minDefenseFrequency(toCall, s.pot);
+  const mdfFacing = minDefenseFrequency(toCall, potBeforeBet);
   const commitment = commitmentTier(s.pot > 0 ? hero.stack / s.pot : 0);
 
   return {
@@ -226,6 +233,7 @@ export function analyseSpot(s: HandState): HeroAnalysis | null {
     mdfFacing,
     commitment,
     preflopTier,
+    shape: handShape(hole),
   };
 }
 

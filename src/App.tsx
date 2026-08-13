@@ -8,6 +8,7 @@ import { computeAllInAdjustedResult } from './allInAdjustedEV';
 import { PokerTable } from './components/PokerTable';
 import { ActionBar } from './components/ActionBar';
 import { PeekStrip } from './components/PeekStrip';
+import { CoachChips } from './components/CoachChips';
 import { EquityBar } from './components/EquityBar';
 import { OutsStrip } from './components/OutsStrip';
 import { EVBarChart } from './components/EVBarChart';
@@ -384,8 +385,19 @@ export default function App() {
         <main className="main-layout">
           {/* Table Zone (Flex: 1) */}
           <section className="table-zone">
-            <PokerTable state={state} analysis={analysis} coachDensity={coachDensity} />
+            <PokerTable state={state} />
           </section>
+
+          {/* Every coach number in one labelled row, directly above the peek
+              strip — they used to be scattered around the outside of the felt. */}
+          {heroTurn && analysis && (
+            <CoachChips
+              analysis={analysis}
+              state={state}
+              coachDensity={coachDensity}
+              toCall={analysis.toCall}
+            />
+          )}
 
           {/* Peek Strip (Above Action Bar) */}
           {heroTurn && analysis && (
