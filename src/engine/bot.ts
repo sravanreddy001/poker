@@ -5,9 +5,9 @@ import type { Rng } from './rng';
 import type { Action, BotConfig, BotContext } from './types';
 
 export const DEFAULT_BOT: BotConfig = {
-  openPercent: 0.25,
-  bluffFreq: { preflop: 0, flop: 0.2, turn: 0.25, river: 0.3 },
-  valueThreshold: 0.62,
+  openPercent: 0.28,
+  bluffFreq: { preflop: 0, flop: 0.33, turn: 0.3, river: 0.22 },
+  valueThreshold: 0.57,
 };
 
 /**
