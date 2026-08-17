@@ -227,6 +227,12 @@ html, body {
   box-shadow: 0 0 18px rgba(16, 185, 129, 0.6);
 }
 
+.seat-slot.winner .seat-badge {
+  border-color: #fbbf24;
+  border-width: 2px;
+  box-shadow: 0 0 22px rgba(251, 191, 36, 0.75);
+}
+
 /* Out of the hand, not see-through: opacity let the felt and the rail line
    read straight through the badge. Go opaque grey instead. */
 .seat-slot.folded .seat-badge {
@@ -336,7 +342,7 @@ html, body {
 }
 
 .seat-tag.won {
-  color: var(--emerald);
+  color: #fbbf24;
 }
 
 .hero-pos-banner {

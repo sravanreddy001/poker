@@ -18,6 +18,31 @@ export const DEFAULT_BOT: BotConfig = {
 const SIZE_PREMIUM_RATE = 0.1;
 const MAX_SIZE_PREMIUM = 0.25;
 
+/**
+ * Below this effective stack (in big blinds) preflop play switches to
+ * push/fold: Nash-style charts only hold shape under ~15-20bb, since above
+ * that folding equity stops compensating for the postflop equity a shove
+ * gives up. A 15bb stack should see shoves constantly; a 1000bb stack
+ * almost never.
+ */
+const PUSH_FOLD_STACK_BB = 18;
+
+/**
+ * Equity a bot demands per big blind of effective stack beyond 20bb before
+ * it will stack off postflop, capped so it never becomes uncallable. A
+ * one-pair hand that's a clear call at 100bb (M ~20, "green zone") is a
+ * clear fold at 1000bb, where reverse implied odds swing hard against
+ * committing without a much stronger holding.
+ */
+const STACK_DEPTH_PREMIUM_RATE = 0.0015;
+const MAX_STACK_DEPTH_PREMIUM = 0.18;
+
+function stackDepthPremium(ctx: BotContext): number {
+  const stackBB = ctx.bigBlind > 0 ? ctx.stack / ctx.bigBlind : 0;
+  const excessBB = Math.max(0, stackBB - 20);
+  return Math.min(MAX_STACK_DEPTH_PREMIUM, STACK_DEPTH_PREMIUM_RATE * excessBB);
+}
+
 /** Where this hand sits in the 169-hand strength order, as a fraction 0..1. */
 function preflopPercentile(ctx: BotContext): number {
   const name = canonicalName(ctx.hole[0], ctx.hole[1]);
@@ -30,10 +55,13 @@ function clampBet(amount: number, ctx: BotContext): number {
 
 function preflopAction(ctx: BotContext, cfg: BotConfig): Action {
   const pct = preflopPercentile(ctx);
+  const stackBB = ctx.bigBlind > 0 ? ctx.stack / ctx.bigBlind : 0;
+  const shortStacked = stackBB <= PUSH_FOLD_STACK_BB;
 
   if (ctx.toCall === 0) {
     if (pct <= cfg.openPercent) {
-      const amount = clampBet(ctx.bigBlind * 3, ctx);
+      // Short stacks skip the min-raise dance and go straight to push/fold.
+      const amount = shortStacked ? ctx.stack : clampBet(ctx.bigBlind * 3, ctx);
       return amount > 0 ? { type: 'bet', amount } : { type: 'check' };
     }
     return { type: 'check' };
@@ -41,7 +69,7 @@ function preflopAction(ctx: BotContext, cfg: BotConfig): Action {
 
   // Facing a bet: three-bet the very top, call a bit wider, fold the rest.
   if (pct <= cfg.openPercent * 0.4) {
-    const amount = clampBet(ctx.toCall * 3, ctx);
+    const amount = shortStacked ? ctx.stack : clampBet(ctx.toCall * 3, ctx);
     return amount > ctx.toCall ? { type: 'raise', amount } : { type: 'call' };
   }
   if (pct <= cfg.openPercent * 1.6) return { type: 'call' };
@@ -76,7 +104,10 @@ export function botAct(ctx: BotContext, cfg: BotConfig, rng: Rng): Action {
   // the advisor rate a 15x-pot shove as the best line every time we were ahead.
   const potBeforeBet = Math.max(0, ctx.pot - ctx.toCall);
   const sizeRatio = ctx.toCall > 0 && potBeforeBet > 0 ? ctx.toCall / potBeforeBet : 0;
-  const required = potOdds + Math.min(MAX_SIZE_PREMIUM, SIZE_PREMIUM_RATE * sizeRatio);
+  const required =
+    potOdds +
+    Math.min(MAX_SIZE_PREMIUM, SIZE_PREMIUM_RATE * sizeRatio) +
+    stackDepthPremium(ctx);
 
   // Value: strong enough to bet or raise — and, facing a bet, strong enough for
   // the size of it.

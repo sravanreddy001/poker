@@ -49,6 +49,22 @@ export function categoryOf(s: number): Cat {
   return (s >> 20) as Cat;
 }
 
+const CATEGORY_NAME: Record<Cat, string> = {
+  [Cat.HighCard]: 'High Card',
+  [Cat.Pair]: 'Pair',
+  [Cat.TwoPair]: 'Two Pair',
+  [Cat.Trips]: 'Three of a Kind',
+  [Cat.Straight]: 'Straight',
+  [Cat.Flush]: 'Flush',
+  [Cat.FullHouse]: 'Full House',
+  [Cat.Quads]: 'Four of a Kind',
+  [Cat.StraightFlush]: 'Straight Flush',
+};
+
+export function categoryName(s: number): string {
+  return CATEGORY_NAME[categoryOf(s)];
+}
+
 /**
  * Score the best five-card hand available in `cards` (5 to 7 cards).
  * Higher is better; equal scores are genuine ties.

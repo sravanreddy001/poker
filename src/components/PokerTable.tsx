@@ -43,6 +43,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({ state }) => {
                 isCurrentToAct={state.toAct === p.id}
                 isComplete={state.complete}
                 isWinner={state.winners.includes(p.id)}
+                winnerHandName={state.winners.includes(p.id) ? state.winnerHandName : undefined}
                 positionTag={posTag}
               />
             );

@@ -1,5 +1,5 @@
 import { Card, fullDeck } from './cards';
-import { evaluate } from './evaluator';
+import { categoryName, evaluate } from './evaluator';
 import { botAct, DEFAULT_BOT } from './bot';
 import { Combo, rangeTopPercent } from './ranges';
 import { makeRng, shuffled, Rng } from './rng';
@@ -65,6 +65,8 @@ export interface HandState {
   winners: number[];
   /** Size of the pot at the moment it was awarded. `pot` itself drops to 0. */
   awardedPot: number;
+  /** Winning hand category at showdown, e.g. "Flush" — unset on a fold win. */
+  winnerHandName?: string;
   /** Snapshot of all-in with cards to come, if applicable. */
   allInSnapshot?: AllInSnapshot;
   /** Hero's starting stack for this hand (used for all-in snapshot computation). */
@@ -252,6 +254,7 @@ function showdown(s: HandState): HandState {
     awardedPot: s.pot,
     complete: true,
     winners,
+    winnerHandName: categoryName(best),
   };
 }
 

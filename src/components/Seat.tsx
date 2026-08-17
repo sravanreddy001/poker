@@ -10,6 +10,7 @@ export interface SeatProps {
   isCurrentToAct: boolean;
   isComplete: boolean;
   isWinner: boolean;
+  winnerHandName?: string;
   positionTag?: string;
 }
 
@@ -19,6 +20,7 @@ export const Seat: React.FC<SeatProps> = ({
   isCurrentToAct,
   isComplete,
   isWinner,
+  winnerHandName,
   positionTag = '',
 }) => {
   const slotIndex = getSeatSlot(player.id, totalPlayers);
@@ -29,7 +31,9 @@ export const Seat: React.FC<SeatProps> = ({
   const statusText = player.folded
     ? 'Folded'
     : isWinner
-      ? 'Won'
+      ? winnerHandName
+        ? `Won — ${winnerHandName}`
+        : 'Won'
       : isCurrentToAct && !isComplete
         ? 'Thinking...'
         : '';
@@ -39,14 +43,14 @@ export const Seat: React.FC<SeatProps> = ({
   const styleNote = player.id === 1 ? 'Bluffs about 30% of the time when checked to' : '';
 
   const ariaLabel = `${name}, stack ${money(player.stack)}${
-    player.folded ? ', folded' : isWinner ? ', won' : ''
+    player.folded ? ', folded' : isWinner ? `, won${winnerHandName ? ` with ${winnerHandName}` : ''}` : ''
   }${styleNote ? `. ${styleNote}` : ''}`;
 
   return (
     <div
       className={`seat-slot slot-${slotIndex} ${player.folded ? 'folded' : ''} ${
         isCurrentToAct && !isComplete ? 'active' : ''
-      } ${isHero ? 'hero-seat' : ''}`}
+      } ${isHero ? 'hero-seat' : ''} ${isWinner ? 'winner' : ''}`}
       style={{ left: coord.left, top: coord.top }}
       aria-label={ariaLabel}
       title={styleNote || undefined}

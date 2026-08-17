@@ -12,6 +12,8 @@ export interface ActionBarProps {
   onAct: (action: Action, label: string) => void;
   /** Someone else is acting: the bar holds its place, but nothing can be pressed. */
   disabled?: boolean;
+  /** Practice mode: hide the 1/2, 3/4, pot, all-in preset pills — the slider still reaches every amount. */
+  hidePresets?: boolean;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -22,6 +24,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   sizeButtons,
   onAct,
   disabled = false,
+  hidePresets = false,
 }) => {
   const isRaise = toCall > 0;
   const minAmount = isRaise ? Math.min(stack, Math.max(toCall * 2, bigBlind * 2)) : Math.min(stack, bigBlind);
@@ -64,18 +67,20 @@ export const ActionBar: React.FC<ActionBarProps> = ({
       inert={disabled}
     >
       {/* 1. Quick Preset Sizing Pills */}
-      <div className="preset-pills-row">
-        {presets.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            className={`preset-pill ${selectedAmount === p.amount ? 'active' : ''}`}
-            onClick={() => setSelectedAmount(p.amount)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {!hidePresets && (
+        <div className="preset-pills-row">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className={`preset-pill ${selectedAmount === p.amount ? 'active' : ''}`}
+              onClick={() => setSelectedAmount(p.amount)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 2. Custom Amount Slider + Steppers (- / +) */}
       <div className="slider-controls-row">

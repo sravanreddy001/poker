@@ -362,6 +362,20 @@ export default function App() {
           >
             EV Lost <b>{money(stats.evLost)}</b>
           </div>
+          {/* One-tap switch between practice (chips hidden, plays like a real
+              table) and coach (chips back for the working behind each spot),
+              sitting right in the strip instead of a menu tap away. */}
+          <button
+            type="button"
+            className="header-icon-btn coach-toggle-btn"
+            onClick={() => setStats((st) => ({ ...st, coachDensity: coachDensity === 'off' ? 'full' : 'off' }))}
+            aria-pressed={coachDensity !== 'off'}
+            aria-label={coachDensity === 'off' ? 'Coach chips hidden — tap to show' : 'Coach chips visible — tap to hide'}
+            title={coachDensity === 'off' ? 'Practice mode — tap to show coach chips' : 'Coach mode — tap to hide coach chips'}
+          >
+            {coachDensity === 'off' ? '🎯' : '🧠'}
+          </button>
+
           {/* Five emoji buttons competed with the four numbers for the same
               36px strip. One menu, with the actions named in words instead. */}
           <div className="header-menu-wrap">
@@ -421,8 +435,9 @@ export default function App() {
             />
           )}
 
-          {/* Peek Strip (Above Action Bar) */}
-          {shown && (
+          {/* Peek Strip (Above Action Bar) — one of the "advanced details",
+              hidden in practice mode along with the coach chips. */}
+          {shown && coachDensity !== 'off' && (
             <PeekStrip
               winOdds={shown.analysis.winOdds}
               winOddsWorking={shown.analysis.winOddsWorking}
@@ -442,6 +457,7 @@ export default function App() {
               sizeButtons={sizeButtons}
               onAct={act}
               disabled={!heroTurn || !analysis}
+              hidePresets={coachDensity === 'off'}
             />
           )}
 
