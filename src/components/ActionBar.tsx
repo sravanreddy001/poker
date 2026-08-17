@@ -14,6 +14,9 @@ export interface ActionBarProps {
   disabled?: boolean;
   /** Practice mode: hide the 1/2, 3/4, pot, all-in preset pills — the slider still reaches every amount. */
   hidePresets?: boolean;
+  /** Armed: check-or-fold fires the instant it's legal, no click needed. */
+  autoCheckFold?: boolean;
+  onToggleAutoCheckFold?: () => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -25,6 +28,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   onAct,
   disabled = false,
   hidePresets = false,
+  autoCheckFold = false,
+  onToggleAutoCheckFold,
 }) => {
   const isRaise = toCall > 0;
   const minAmount = isRaise ? Math.min(stack, Math.max(toCall * 2, bigBlind * 2)) : Math.min(stack, bigBlind);
@@ -114,6 +119,20 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         </button>
         <span className="selected-amount-badge">{money(selectedAmount)}</span>
       </div>
+
+      {/* Autopilot: arms check-or-fold ahead of the decision so it fires the
+          instant it's legal. Deselectable — tap again to take the wheel back. */}
+      {onToggleAutoCheckFold && (
+        <button
+          type="button"
+          className={`auto-checkfold-pill ${autoCheckFold ? 'active' : ''}`}
+          onClick={onToggleAutoCheckFold}
+          aria-pressed={autoCheckFold}
+          aria-label={autoCheckFold ? 'Auto check/fold armed — tap to disarm' : 'Arm auto check/fold'}
+        >
+          {autoCheckFold ? '✓ Auto check/fold armed' : 'Auto check/fold'}
+        </button>
+      )}
 
       {/* 3. Primary Action Buttons */}
       <div className="action-grid">

@@ -69,6 +69,10 @@ export default function App() {
   // the hero runs out of chips, or they take everyone else's.
   const [sessionOver, setSessionOver] = useState<null | 'busted' | 'swept'>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Armed ahead of the hero's turn so a check-or-fold decision fires the
+  // instant it's legal, instead of waiting on a click. Stays armed across
+  // hands until the player turns it off or takes a different action.
+  const [autoCheckFold, setAutoCheckFold] = useState(false);
   const [decisions, setDecisions] = useState<DecisionRecord[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<DecisionRecord | null>(null);
@@ -205,6 +209,17 @@ export default function App() {
     },
     [analysis, allCandidates, snapMemory, state.street, state.pot],
   );
+
+  // Auto-fires the moment it's legal: check with nothing to call, fold facing
+  // one. Skips a beat so the felt reads before the decision resolves, same as
+  // a bot turn does.
+  useEffect(() => {
+    if (!autoCheckFold || !heroTurn || !analysis) return;
+    const timer = setTimeout(() => {
+      act(analysis.toCall > 0 ? { type: 'fold' } : { type: 'check' });
+    }, BOT_ACTION_MS);
+    return () => clearTimeout(timer);
+  }, [autoCheckFold, heroTurn, analysis, act]);
 
   // Fit the 420x880 frame into whatever window the player has, rather than
   // letting a short laptop viewport crush the table into the cards.
@@ -455,9 +470,18 @@ export default function App() {
               stack={hero.stack}
               bigBlind={shown.state.bigBlind}
               sizeButtons={sizeButtons}
-              onAct={act}
+              onAct={(action) => {
+                // A manual call/bet/raise overrides autopilot for good — it means
+                // the player wants the wheel back, not just this one street.
+                if (action.type === 'call' || action.type === 'bet' || action.type === 'raise') {
+                  setAutoCheckFold(false);
+                }
+                act(action);
+              }}
               disabled={!heroTurn || !analysis}
               hidePresets={coachDensity === 'off'}
+              autoCheckFold={autoCheckFold}
+              onToggleAutoCheckFold={() => setAutoCheckFold((v) => !v)}
             />
           )}
 
