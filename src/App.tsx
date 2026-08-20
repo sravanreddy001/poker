@@ -19,7 +19,7 @@ import { TerminologyModal } from './components/TerminologyModal';
 import { HandRankingsModal } from './components/HandRankingsModal';
 import { EducationalModal } from './components/EducationalModal';
 
-const OPTS = { players: 6, stack: 100, bigBlind: 1 };
+const OPTS = { players: 6, stack: 200, bigBlind: 1 };
 const STORAGE_KEY = 'poker-trainer-session';
 /** Beat between opponent decisions. Long enough to read, short enough to not wait on. */
 const BOT_ACTION_MS = 850;
@@ -330,7 +330,7 @@ export default function App() {
   }, [btnSeat, seed, state.players]);
 
   const resetSession = useCallback(() => {
-    const emptyStats = { hands: 0, evLost: 0, actual: 0, adjusted: 0, reveals: 0 };
+    const emptyStats = { hands: 0, evLost: 0, actual: 0, adjusted: 0, reveals: 0, coachDensity };
     setStats(emptyStats);
     localStorage.removeItem(STORAGE_KEY);
     const nextSeed = Math.floor(Math.random() * 1e9);
@@ -343,7 +343,7 @@ export default function App() {
     setLastFeedback(null);
     setRevealed(false);
     setShowReviewModal(false);
-  }, []);
+  }, [coachDensity]);
 
   const sizeButtons = useMemo(() => {
     if (!analysis) return [];
